@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Studio Settings | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; padding: 2rem; }
+    .field { width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; outline: none; transition: 0.2s; font-weight: 600; }
+    .field:focus { border-color: #0f766e; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08); }
+    .save-toast { position: fixed; bottom: 2rem; right: 2rem; background: #0f172a; color: white; padding: 1rem 2rem; border-radius: 12px; display: none; }
+  </style>
+</head>
+<body class="p-4 md:p-12">
+  <div class="max-w-2xl mx-auto space-y-8">
+    <header class="flex items-center justify-between">
+      <div>
+        <a href="admin.html" class="text-xs font-black uppercase text-teal-700 tracking-widest hover:underline">← Back to Dashboard</a>
+        <h1 class="text-3xl font-black mt-2">Studio Settings</h1>
+      </div>
+      <button onclick="saveSettings()" class="bg-teal-700 text-white px-8 py-3 rounded-xl font-black shadow-lg hover:bg-teal-800 transition">Save Changes</button>
+    </header>
+
+    <div class="card space-y-8">
+      <section>
+        <h2 class="text-sm font-black uppercase text-slate-400 tracking-widest mb-4">Cancellation Policy</h2>
+        <div class="grid gap-6">
+          <div>
+            <label class="text-sm font-bold block mb-2">Free Cancellation Window (Hours)</label>
+            <input type="number" id="setWindow" class="field" placeholder="24">
+            <p class="text-xs text-slate-500 mt-2">Students must cancel at least this many hours before the session to avoid a fee.</p>
+          </div>
+          <div>
+            <label class="text-sm font-bold block mb-2">Late Cancellation Fee (%)</label>
+            <div class="relative">
+              <input type="number" id="setFee" class="field pr-12" placeholder="50">
+              <span class="absolute right-4 top-2.5 font-bold text-slate-400">%</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Percentage of the service price charged for late cancellations.</p>
+          </div>
+        </div>
+      </section>
+
+      <hr class="border-slate-100">
+
+      <section>
+        <h2 class="text-sm font-black uppercase text-slate-400 tracking-widest mb-4">Student Permissions</h2>
+        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+          <div>
+            <p class="font-bold text-sm">Allow Students to Cancel in Portal</p>
+            <p class="text-xs text-slate-500">If off, students must contact you directly to cancel.</p>
+          </div>
+          <input type="checkbox" id="setAllowCancel" class="w-6 h-6 accent-teal-700">
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="save-toast font-bold shadow-2xl">Settings Updated Successfully!</div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function loadSettings() {
+      const teacher = await StudioFlowAPI.getCurrentTeacher();
+      if (!teacher) { window.location.href = 'auth.html'; return; }
+
+      const settings = await StudioFlowAPI.getSettings();
+      document.getElementById('setWindow').value = settings.cancelWindow;
+      document.getElementById('setFee').value = settings.lateFee;
+      document.getElementById('setAllowCancel').checked = settings.allowPortalCancel;
+    }
+
+    async function saveSettings() {
+      const newSettings = {
+        cancelWindow: parseInt(document.getElementById('setWindow').value),
+        lateFee: parseInt(document.getElementById('setFee').value),
+        allowPortalCancel: document.getElementById('setAllowCancel').checked
+      };
+
+      await StudioFlowAPI.updateSettings(newSettings);
+      
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    loadSettings();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

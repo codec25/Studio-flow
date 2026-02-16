@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Manual Booking | StudioFlow Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; color: #111827; background: linear-gradient(180deg,#ecfeff,#f8fafc); min-height: 100vh; }
+    .card { background: rgba(255,255,255,0.98); border: 1px solid #e2e8f0; border-radius: 28px; box-shadow: 0 20px 40px rgba(17,24,39,0.06); }
+    .field { width: 100%; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 16px; outline: none; transition: 0.2s; background: #fcfdfe; }
+    .field:focus { border-color: #0f766e; background: white; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08); }
+    .slot { border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; font-weight: 700; background: #fff; text-align: center; transition: all 0.2s; cursor: pointer; }
+    .slot:hover:not(:disabled) { border-color: #0f766e; transform: translateY(-1px); }
+    .slot.active { border-color: #0f766e; background: #ccfbf1; box-shadow: 0 0 0 2px #0f766e; }
+    .cta-book { background: linear-gradient(90deg, #0f766e 0%, #0d9488 100%); transition: all 0.3s; }
+    .cta-book:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-3xl mx-auto">
+    <header class="mb-8 flex justify-between items-center">
+      <div class="flex items-center gap-6">
+        <a href="admin.html" class="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Back to Admin
+        </a>
+        <div>
+          <p class="text-[10px] tracking-[0.2em] uppercase font-black text-teal-700 opacity-60">Admin Override</p>
+          <h1 class="text-3xl font-extrabold mt-1">Manual Booking</h1>
+        </div>
+      </div>
+    </header>
+
+    <main class="card p-6 md:p-10 space-y-8">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Service Type</label>
+          <select id="serviceSelect" class="field mt-2 font-bold text-slate-700"></select>
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Target Date</label>
+          <input id="dateSelect" type="date" class="field mt-2 font-bold text-slate-700">
+        </div>
+      </div>
+
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Available Times</label>
+          <p id="serviceMeta" class="text-xs font-black text-teal-700 bg-teal-50 px-3 py-1 rounded-full"></p>
+        </div>
+        <div id="slotGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          </div>
+      </section>
+
+      <section class="space-y-4 pt-6 border-t border-slate-100">
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Select Student</label>
+          <select id="clientSelect" class="field mt-1 font-bold">
+            <option value="">Loading students...</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Internal Notes (Optional)</label>
+          <textarea id="clientNotes" class="field mt-1 h-20" placeholder="Add specific goals or reminders for this session..."></textarea>
+        </div>
+      </section>
+
+      <div class="p-5 rounded-2xl border border-teal-100 bg-teal-50/30 text-sm text-slate-700" id="summary">
+        Please complete selection to see booking preview.
+      </div>
+
+      <button id="submitBtn" class="w-full py-4 rounded-2xl text-white font-black cta-book text-lg">Confirm Manual Entry</button>
+      <p id="feedback" class="text-sm font-bold text-center min-h-[1.25rem] mt-4"></p>
+    </main>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    let services = [];
+    let clients = [];
+    let selectedSlot = null;
+
+    const q = (id) => document.getElementById(id);
+
+    async function initPage() {
+      // 1. Teacher Check
+      const teacher = await StudioFlowAPI.getCurrentTeacher();
+      if (!teacher) { window.location.href = 'auth.html?role=teacher'; return; }
+
+      try {
+        // 2. Load Services and All Students
+        [services, clients] = await Promise.all([
+          StudioFlowAPI.listServices(),
+          StudioFlowAPI.listClients() // Gets the full client list from DB
+        ]);
+
+        q('serviceSelect').innerHTML = services.length
+          ? services.map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+          : '<option value="">No services available</option>';
+        q('submitBtn').disabled = services.length === 0;
+        
+        // Populate Students Dropdown
+        q('clientSelect').innerHTML = '<option value="">-- Choose a Student --</option>' + 
+          clients.map(c => `<option value="${c.email}">${c.name} (${c.credits} cr)</option>`).join('');
+
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        q('dateSelect').value = today;
+
+        await renderSlots();
+      } catch (e) {
+        setMsg("Error syncing data: " + e.message, false);
+      }
+    }
+
+    async function renderSlots() {
+      selectedSlot = null;
+      const serviceId = q('serviceSelect').value;
+      const date = q('dateSelect').value;
+      const service = services.find(s => s.id === serviceId);
+      
+      if (!service) {
+        q('serviceMeta').textContent = 'No service selected';
+        q('slotGrid').innerHTML = '<p class="col-span-full text-center py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Create a service first in Services page.</p>';
+        return;
+      }
+      q('serviceMeta').textContent = `${service.duration} mins`;
+      
+      try {
+        // We use the bookable slots logic but can ignore maintenance here
+        const slots = await StudioFlowAPI.listBookableSlots(serviceId, date);
+        q('slotGrid').innerHTML = slots.length === 0 
+          ? '<p class="col-span-full text-center py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">No availability for this date.</p>'
+          : slots.map(slot => `
+            <button class="slot" onclick="pickSlot('${slot.time}')">
+              <span class="text-sm">${slot.time}</span>
+            </button>
+          `).join('');
+      } catch (e) {
+        q('slotGrid').innerHTML = '<p class="text-rose-500 text-xs">Failed to fetch slots.</p>';
+      }
+    }
+
+    window.pickSlot = function(time) {
+      selectedSlot = time;
+      document.querySelectorAll('.slot').forEach(el => el.classList.remove('active'));
+      const btn = Array.from(document.querySelectorAll('.slot')).find((el) => el.innerText.includes(time));
+      if (btn) btn.classList.add('active');
+      updateSummary();
+    };
+
+    function updateSummary() {
+      const student = clients.find(c => c.email === q('clientSelect').value);
+      if (student && selectedSlot) {
+        const warning = (student.credits < 1) ? '<br><span class="text-rose-600 font-bold">⚠️ Student has 0 credits. This booking will proceed anyway.</span>' : '';
+        q('summary').innerHTML = `<strong>Booking:</strong> ${student.name} at ${selectedSlot} on ${q('dateSelect').value}.${warning}`;
+      }
+    }
+
+    async function submitBooking() {
+      const clientEmail = q('clientSelect').value;
+      const serviceId = q('serviceSelect').value;
+      const date = q('dateSelect').value;
+      const notes = q('clientNotes').value;
+
+      if (!clientEmail || !selectedSlot) return setMsg("Please select both a student and a time slot.", false);
+
+      q('submitBtn').disabled = true;
+      setMsg("Creating admin booking...", true);
+
+      try {
+        const student = clients.find(c => c.email === clientEmail);
+        const service = services.find(s => s.id === serviceId);
+
+        // This call bypasses student-side checks
+        await StudioFlowAPI.createBooking({
+          serviceId,
+          serviceName: service.name,
+          date,
+          time: selectedSlot,
+          clientName: student.name,
+          clientEmail: student.email,
+          notes,
+          status: 'confirmed',
+          force: true // Signal to API that teacher is doing this
+        });
+
+        setMsg("Booking confirmed! Redirecting...", true);
+        setTimeout(() => { location.href = 'admin.html'; }, 1200);
+      } catch (err) {
+        setMsg(err.message, false);
+        q('submitBtn').disabled = false;
+      }
+    }
+
+    function setMsg(msg, ok) {
+      q('feedback').textContent = msg;
+      q('feedback').className = `text-sm font-bold text-center ${ok ? 'text-teal-600' : 'text-rose-600'}`;
+    }
+
+    // Event Listeners
+    q('serviceSelect').addEventListener('change', renderSlots);
+    q('dateSelect').addEventListener('change', renderSlots);
+    q('clientSelect').addEventListener('change', updateSummary);
+    q('submitBtn').addEventListener('click', submitBooking);
+
+    initPage();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

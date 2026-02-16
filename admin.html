@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Admin Dashboard | StudioFlow</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; transition: background 0.3s; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+    .btn-primary { background: #0f766e; color: white; border-radius: 12px; font-weight: 700; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary:hover { background: #134e4a; transform: translateY(-1px); }
+    .sidebar-link { transition: all 0.2s; border-radius: 12px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-weight: 700; color: #64748b; }
+    .sidebar-link:hover { background: #f1f5f9; color: #0f766e; }
+    .sidebar-link.active { background: #0f766e; color: white !important; }
+
+    .dark body { background: #0f172a; color: #f8fafc; }
+    .dark .card { background: #1e293b; border-color: #334155; }
+    .dark .sidebar-link:hover { background: #334155; }
+    
+    .hidden { display: none; }
+    @media (max-width: 1024px) { .sidebar { display: none; } }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+
+  <button id="sidebarQuickToggle" onclick="toggleSidebar()" class="no-print fixed left-2 top-20 z-[120] px-3 py-2 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm dark:bg-slate-800 dark:border-slate-700">
+    Hide Menu
+  </button>
+
+  <div class="flex min-h-screen w-full">
+  <aside id="adminSidebar" class="sidebar w-56 bg-white border-r border-slate-200 p-5 flex flex-col no-print dark:bg-slate-900 dark:border-slate-800">
+    <div class="text-2xl font-black text-teal-800 tracking-tighter mb-10 flex items-center gap-2">
+      <div class="w-8 h-8 bg-teal-700 rounded-lg"></div>
+      StudioFlow.
+    </div>
+    <nav class="space-y-2 flex-1">
+      <a href="admin.html" class="sidebar-link active">Dashboard</a>
+      <a href="clients.html" class="sidebar-link">Students</a>
+      <a href="services.html" class="sidebar-link">Services</a>
+      <a href="settings.html" class="sidebar-link">Studio Settings</a>
+    </nav>
+    <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
+      <button onclick="toggleDarkMode()" class="w-full sidebar-link mb-2">
+        <span id="darkIcon">🌙</span> <span id="themeText">Dark Mode</span>
+      </button>
+      <button onclick="deleteMyTeacherAccount()" class="w-full sidebar-link text-rose-600">Delete My Account</button>
+      <button onclick="logout()" class="w-full sidebar-link text-rose-500">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+    <div id="maintBanner" class="mb-8 p-6 bg-slate-900 rounded-[32px] text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl no-print">
+      <div>
+        <h3 class="font-black text-lg leading-none">Studio Booking Status</h3>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Public booking is currently <span id="maintStatusText">Live</span></p>
+      </div>
+      <button id="maintenanceBtn" onclick="toggleMaintenance()" class="w-full md:w-auto px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all">
+        Toggle Mode
+      </button>
+    </div>
+
+    <div id="overdueAlert" class="hidden mb-6 p-4 bg-rose-600 text-white rounded-2xl font-bold flex justify-between items-center animate-pulse no-print">
+        <span>⚠️ You have <span id="overdueCount">0</span> student(s) with overdue payments!</span>
+        <button onclick="location.href='clients.html?filter=Overdue'" class="bg-white text-rose-600 px-4 py-1 rounded-lg text-xs uppercase font-black">Fix Now</button>
+    </div>
+
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 no-print">
+      <div>
+        <h1 class="text-3xl font-black tracking-tight" id="headerName">Dashboard</h1>
+        <p class="text-slate-500 font-medium">Overview of your studio performance.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm dark:bg-slate-800 dark:border-slate-700">Hide Sidebar</button>
+        <button onclick="openTaxReport()" class="px-6 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm dark:bg-slate-800 dark:border-slate-700">Tax Report</button>
+        <button onclick="openPostLessonModal()" class="px-6 py-3 bg-white border border-teal-200 text-teal-700 rounded-xl font-bold text-sm dark:bg-slate-800 dark:border-teal-700">Post-Lesson</button>
+        <button onclick="location.href='teacher_book.html'" class="btn-primary px-6 py-3 shadow-lg">Manual Booking +</button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 no-print">
+      <div class="lg:col-span-2 space-y-8">
+        <div class="card p-8 bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+          <button onclick="openExpenseModal()" class="relative z-10 p-2 bg-white/10 hover:bg-white/20 rounded-lg transition text-[10px] font-black uppercase tracking-widest">Log Expense</button>
+          
+          <div class="relative z-10 mt-6">
+            <p class="text-[10px] font-black uppercase opacity-60 tracking-[0.2em]">Net Take-Home (2026 YTD)</p>
+            <p id="statTrueProfit" class="text-5xl font-black mt-2 text-teal-400">$0.00</p>
+          </div>
+
+          <div class="relative z-10 mt-8 pt-8 border-t border-white/10 grid grid-cols-3 gap-4 text-center">
+            <div><p class="text-[10px] opacity-60 uppercase font-black">Gross Revenue</p><p id="summaryGross" class="font-bold text-lg"></p></div>
+            <div><p class="text-[10px] opacity-60 uppercase font-black text-rose-400">Total Expenses</p><p id="summaryExpenses" class="font-bold text-lg text-rose-400"></p></div>
+            <div><p class="text-[10px] opacity-60 uppercase font-black text-amber-400">Tax Liabilities</p><p id="summaryTax" class="font-bold text-lg text-amber-400"></p></div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-lg">Activity Feed</h3>
+          </div>
+          <div class="mb-6 relative">
+            <input type="text" id="studentSearch" onkeyup="filterActivity()" placeholder="Search activity..." class="w-full pl-4 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-teal-500 transition-all">
+          </div>
+          <div id="activityLog" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="card p-6 border-amber-50 dark:border-amber-900/20">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-lg">24h Lesson Nudges</h3>
+            <span id="nudgeCountBadge" class="text-[10px] font-black px-2 py-1 bg-amber-100 text-amber-700 rounded-lg uppercase tracking-widest">0 due</span>
+          </div>
+          <div id="nudgeList" class="space-y-3"></div>
+        </div>
+
+        <div class="card p-6 border-teal-50 dark:border-teal-900/20">
+          <h3 class="font-bold text-lg mb-4">Today's Schedule (<span id="sessionCount">0</span>)</h3>
+          <div id="todayList" class="space-y-4"></div>
+        </div>
+
+        <div class="card p-6 border-rose-50 dark:border-rose-900/20">
+          <h3 class="font-bold text-lg text-rose-600 mb-4">Refill Alerts</h3>
+          <div id="lowCreditList" class="space-y-3"></div>
+        </div>
+
+        <div class="card p-6 border-teal-50 dark:border-teal-900/20">
+          <h3 class="font-bold text-lg mb-4">Subscriptions</h3>
+          <div class="space-y-3">
+            <select id="subscriptionStudent" class="w-full p-3 border border-slate-200 rounded-xl dark:bg-slate-900 dark:border-slate-700"></select>
+            <label class="flex items-center gap-2 text-sm font-semibold">
+              <input id="subscriptionEnabled" type="checkbox" class="w-4 h-4">
+              Auto-refill 4 credits at month start
+            </label>
+            <button onclick="saveSubscriptionStatus()" class="w-full py-3 btn-primary">Save Subscription</button>
+            <p id="subscriptionFeedback" class="text-[11px] font-bold min-h-[1rem] text-slate-500"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  </div>
+
+  <div id="expenseModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-800 rounded-[32px] p-8 w-full max-w-sm">
+      <h3 class="font-black text-2xl mb-4">Log Expense</h3>
+      <input type="text" id="expNote" placeholder="e.g. Rent, Zoom, Gear" class="w-full p-4 border rounded-xl mb-4 dark:bg-slate-900 dark:border-slate-700">
+      <input type="number" id="expAmount" placeholder="Amount ($)" class="w-full p-4 border rounded-xl mb-6 dark:bg-slate-900 dark:border-slate-700">
+      <div class="flex gap-3">
+        <button onclick="saveExpense()" class="flex-1 py-4 btn-primary">Save</button>
+        <button onclick="closeExpenseModal()" class="flex-1 py-4 font-bold text-slate-500">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="taxModal" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-[100]">
+    <div class="bg-white rounded-[32px] p-8 md:p-12 w-full max-w-2xl shadow-2xl relative overflow-y-auto max-h-[90vh]">
+      <button onclick="closeTaxModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900 no-print">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div id="taxPrintArea">
+        <h2 class="text-4xl font-black tracking-tighter border-b-2 border-slate-900 pb-4 mb-6">2026 TAX SUMMARY</h2>
+        <div class="grid grid-cols-2 gap-8 mb-8">
+          <div><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross Revenue</p><p id="taxGross" class="text-2xl font-black"></p></div>
+          <div><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Expenses</p><p id="taxExpenses" class="text-2xl font-black text-rose-600"></p></div>
+          <div><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tax Liabilities</p><p id="taxCollected" class="text-2xl font-black text-amber-600"></p></div>
+          <div class="bg-teal-50 p-4 rounded-xl"><p class="text-[10px] font-black text-teal-800 uppercase tracking-widest">Net Income</p><p id="taxNet" class="text-2xl font-black text-teal-700"></p></div>
+        </div>
+        <h3 class="font-black text-sm uppercase mb-3">Expense Itemization</h3>
+        <div id="taxExpenseList" class="space-y-2 border-t pt-4"></div>
+      </div>
+      <button onclick="window.print()" class="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest no-print">Print for Records</button>
+    </div>
+  </div>
+
+  <div id="postLessonModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]">
+    <div class="bg-white dark:bg-slate-800 rounded-[32px] p-8 w-full max-w-2xl">
+      <h3 class="font-black text-2xl mb-4">Post-Lesson Recap</h3>
+      <div class="space-y-4">
+        <select id="recapBookingId" class="w-full p-4 border rounded-2xl dark:bg-slate-900 dark:border-slate-700"></select>
+        <textarea id="recapSummary" rows="5" placeholder="What did the student improve? What should they focus on next?" class="w-full p-4 border rounded-2xl dark:bg-slate-900 dark:border-slate-700"></textarea>
+        <textarea id="recapResources" rows="4" placeholder="Resource links (one per line): PDF, YouTube, sheet music, etc." class="w-full p-4 border rounded-2xl dark:bg-slate-900 dark:border-slate-700"></textarea>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="saveLessonRecap()" class="flex-1 py-4 btn-primary">Publish to Learning Hub</button>
+        <button onclick="closePostLessonModal()" class="flex-1 py-4 font-bold text-slate-500">Cancel</button>
+      </div>
+      <p id="recapFeedback" class="text-[11px] font-bold min-h-[1rem] mt-3 text-slate-500"></p>
+    </div>
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="app-api.js"></script>
+  <script>
+    async function initDashboard() {
+      const teacher = await StudioFlowAPI.getCurrentTeacher();
+      if (!teacher) { window.location.href = 'auth.html?role=teacher'; return; }
+      await StudioFlowAPI.runMonthStartCheck();
+      document.getElementById('headerName').innerText = `${teacher.name}'s Command Center`;
+
+      const summary = await StudioFlowAPI.getFinancialSummary();
+      document.getElementById('statTrueProfit').innerText = StudioFlowAPI.utils.formatMoney(summary.profit);
+      document.getElementById('summaryGross').innerText = StudioFlowAPI.utils.formatMoney(summary.gross);
+      document.getElementById('summaryExpenses').innerText = StudioFlowAPI.utils.formatMoney(summary.expenses);
+      document.getElementById('summaryTax').innerText = StudioFlowAPI.utils.formatMoney(summary.tax);
+
+      checkOverduePayments();
+      updateMaintenanceUI();
+      renderToday();
+      renderActivity();
+      renderLowCredits();
+      renderNudges();
+      renderSubscriptionTools();
+    }
+
+    async function checkOverduePayments() {
+        const clients = await StudioFlowAPI.listClients();
+        const overdue = clients.filter(c => c.paymentStatus === 'Overdue');
+        const alertBox = document.getElementById('overdueAlert');
+        if (overdue.length > 0) {
+            alertBox.classList.remove('hidden');
+            document.getElementById('overdueCount').innerText = overdue.length;
+        }
+    }
+
+    function updateMaintenanceUI() {
+      const isMaint = localStorage.getItem('studio_maintenance') === 'true';
+      const btn = document.getElementById('maintenanceBtn');
+      document.getElementById('maintStatusText').innerText = isMaint ? "PAUSED (Maintenance Mode)" : "LIVE (Public Bookings)";
+      btn.innerText = isMaint ? "GO LIVE" : "PAUSE SYSTEM";
+      btn.className = isMaint ? "px-8 py-3 bg-teal-500 text-white rounded-xl font-bold" : "px-8 py-3 bg-rose-600 text-white rounded-xl font-bold";
+    }
+
+    function toggleMaintenance() {
+      const cur = localStorage.getItem('studio_maintenance') === 'true';
+      localStorage.setItem('studio_maintenance', !cur);
+      updateMaintenanceUI();
+    }
+
+    async function renderActivity() {
+      const bookings = await StudioFlowAPI.listBookings();
+      const log = document.getElementById('activityLog');
+      log.innerHTML = bookings.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).map(b => `
+        <div class="activity-card p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex justify-between items-center border border-slate-100 dark:border-slate-800">
+          <div>
+            <p class="font-bold text-sm">${b.clientName}</p>
+            <p class="text-[9px] uppercase text-slate-400 font-black">${b.serviceName} • ${b.date}</p>
+          </div>
+          <span class="text-[9px] font-black px-2 py-1 bg-white dark:bg-slate-900 rounded shadow-sm uppercase">${b.status}</span>
+        </div>
+      `).join('');
+    }
+
+    function filterActivity() {
+      const q = document.getElementById('studentSearch').value.toLowerCase();
+      document.querySelectorAll('.activity-card').forEach(card => card.style.display = card.innerText.toLowerCase().includes(q) ? "flex" : "none");
+    }
+
+    async function renderToday() {
+      const today = new Date().toISOString().split('T')[0];
+      const sessions = await StudioFlowAPI.listBookings({ date: today });
+      document.getElementById('sessionCount').innerText = sessions.length;
+      document.getElementById('todayList').innerHTML = sessions.map(s => `
+        <div class="p-4 bg-teal-50 dark:bg-teal-900/10 rounded-2xl border border-teal-100 dark:border-teal-900/30">
+          <p class="font-bold text-sm">${s.clientName}</p>
+          <p class="text-[10px] font-black text-teal-600 uppercase tracking-tighter">${s.time} • ${s.serviceName}</p>
+        </div>
+      `).join('') || '<p class="text-xs italic text-slate-400">Clear schedule today.</p>';
+    }
+
+    async function renderLowCredits() {
+      const low = await StudioFlowAPI.getLowCreditStudents(1);
+      document.getElementById('lowCreditList').innerHTML = low.map(s => `
+        <div class="flex justify-between items-center p-3 bg-rose-50 dark:bg-rose-900/10 rounded-xl border border-rose-100 dark:border-rose-900/30">
+          <span class="text-xs font-bold">${s.name} (${s.credits})</span>
+          <button onclick="window.open('mailto:${s.email}')" class="text-[10px] font-black uppercase text-rose-600">Send Alert</button>
+        </div>
+      `).join('') || '<p class="text-xs italic text-slate-400">All student balances are healthy.</p>';
+    }
+
+    async function renderNudges() {
+      const rows = await StudioFlowAPI.getUpcomingLessonNudges(24);
+      document.getElementById('nudgeCountBadge').textContent = `${rows.length} due`;
+      document.getElementById('nudgeList').innerHTML = rows.map((r) => `
+        <div class="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30">
+          <p class="text-xs font-black">${r.clientName}</p>
+          <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wide">${r.serviceName} • ${r.date} ${r.time}</p>
+          <p class="text-[10px] text-slate-500 mt-1">${r.hoursLeft}h remaining</p>
+        </div>
+      `).join('') || '<p class="text-xs italic text-slate-400">No lessons require nudges in the next 24h.</p>';
+
+      if (rows.length > 0 && 'Notification' in window) {
+        const key = new Date().toISOString().slice(0, 13);
+        const seenKey = `studioflow_nudge_notified_${key}`;
+        if (localStorage.getItem(seenKey) !== '1') {
+          if (Notification.permission === 'granted') {
+            new Notification(`StudioFlow: ${rows.length} lesson reminder(s) due`, {
+              body: 'Open Admin Dashboard to review and remind students.'
+            });
+            localStorage.setItem(seenKey, '1');
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission();
+          }
+        }
+      }
+    }
+
+    async function renderSubscriptionTools() {
+      const clients = await StudioFlowAPI.listClients();
+      const select = document.getElementById('subscriptionStudent');
+      select.innerHTML = clients.map((c) => `<option value="${c.email}" data-sub="${c.isSubscription ? '1' : '0'}">${c.name} (${c.credits} credits)</option>`).join('');
+      syncSubscriptionCheckbox();
+      select.onchange = syncSubscriptionCheckbox;
+    }
+
+    function syncSubscriptionCheckbox() {
+      const select = document.getElementById('subscriptionStudent');
+      const option = select.options[select.selectedIndex];
+      document.getElementById('subscriptionEnabled').checked = option ? option.dataset.sub === '1' : false;
+    }
+
+    async function saveSubscriptionStatus() {
+      const select = document.getElementById('subscriptionStudent');
+      const email = select.value;
+      if (!email) return;
+      const enabled = document.getElementById('subscriptionEnabled').checked;
+      await StudioFlowAPI.setStudentSubscription(email, enabled);
+      document.getElementById('subscriptionFeedback').textContent = enabled
+        ? 'Subscription enabled. Credits will reset to 4 at each month start.'
+        : 'Subscription disabled for selected student.';
+      await renderSubscriptionTools();
+      await renderLowCredits();
+    }
+
+    async function openPostLessonModal() {
+      const bookings = await StudioFlowAPI.listBookings();
+      const select = document.getElementById('recapBookingId');
+      const eligible = bookings
+        .filter((b) => b.status !== 'cancelled' && b.status !== 'cancelled_late')
+        .sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`))
+        .slice(0, 60);
+
+      select.innerHTML = eligible.length
+        ? eligible.map((b) => `<option value="${b.id}">${b.date} ${b.time} • ${b.clientName} • ${b.serviceName}</option>`).join('')
+        : '<option value="">No lessons available</option>';
+      document.getElementById('recapSummary').value = '';
+      document.getElementById('recapResources').value = '';
+      document.getElementById('recapFeedback').textContent = '';
+      document.getElementById('postLessonModal').classList.remove('hidden');
+    }
+
+    function closePostLessonModal() {
+      document.getElementById('postLessonModal').classList.add('hidden');
+    }
+
+    async function saveLessonRecap() {
+      const bookingId = document.getElementById('recapBookingId').value;
+      const summary = document.getElementById('recapSummary').value.trim();
+      const resources = document.getElementById('recapResources').value.trim();
+      const feedback = document.getElementById('recapFeedback');
+      if (!bookingId) return;
+      if (!summary) {
+        feedback.textContent = 'Please write a lesson summary.';
+        feedback.className = 'text-[11px] font-bold min-h-[1rem] mt-3 text-rose-600';
+        return;
+      }
+      try {
+        await StudioFlowAPI.createLessonRecap({ bookingId, summary, resources });
+        feedback.textContent = 'Recap published to the student Learning Hub.';
+        feedback.className = 'text-[11px] font-bold min-h-[1rem] mt-3 text-emerald-600';
+        await renderActivity();
+      } catch (error) {
+        feedback.textContent = error.message || 'Failed to publish recap.';
+        feedback.className = 'text-[11px] font-bold min-h-[1rem] mt-3 text-rose-600';
+      }
+    }
+
+    // Modal Handlers
+    function openExpenseModal() { document.getElementById('expenseModal').classList.remove('hidden'); }
+    function closeExpenseModal() { document.getElementById('expenseModal').classList.add('hidden'); }
+    async function saveExpense() {
+      const amount = document.getElementById('expAmount').value;
+      const note = document.getElementById('expNote').value;
+      if (!amount || !note) return alert("Please fill both fields");
+      await StudioFlowAPI.addExpense({ note, amount });
+      closeExpenseModal(); initDashboard();
+    }
+
+    async function openTaxReport() {
+        const summary = await StudioFlowAPI.getFinancialSummary();
+        const expenses = await StudioFlowAPI.listExpenses();
+        document.getElementById('taxGross').innerText = StudioFlowAPI.utils.formatMoney(summary.gross);
+        document.getElementById('taxExpenses').innerText = StudioFlowAPI.utils.formatMoney(summary.expenses);
+        document.getElementById('taxCollected').innerText = StudioFlowAPI.utils.formatMoney(summary.tax);
+        document.getElementById('taxNet').innerText = StudioFlowAPI.utils.formatMoney(summary.profit);
+        document.getElementById('taxExpenseList').innerHTML = expenses.map(e => `
+            <div class="flex justify-between text-xs py-1"><span>${e.note}</span><span class="font-black">-${StudioFlowAPI.utils.formatMoney(e.amount)}</span></div>
+        `).join('') || 'None';
+        document.getElementById('taxModal').classList.remove('hidden');
+    }
+    function closeTaxModal() { document.getElementById('taxModal').classList.add('hidden'); }
+
+    function toggleDarkMode() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+
+    async function deleteMyTeacherAccount() {
+      const ok = window.confirm('Delete your teacher account permanently? This cannot be undone.');
+      if (!ok) return;
+      try {
+        await StudioFlowAPI.deleteCurrentTeacher();
+        window.location.href = 'index.html';
+      } catch (e) {
+        alert(e.message || 'Failed to delete account.');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('studioflow_teacher_session');
+      window.location.href = 'index.html';
+    }
+
+    function applySidebarState(collapsed) {
+      const sidebar = document.getElementById('adminSidebar');
+      const btn = document.getElementById('toggleSidebarBtn');
+      const quick = document.getElementById('sidebarQuickToggle');
+      if (!sidebar || !btn || !quick) return;
+      sidebar.classList.toggle('hidden', collapsed);
+      btn.textContent = collapsed ? 'Show Sidebar' : 'Hide Sidebar';
+      quick.textContent = collapsed ? 'Show Menu' : 'Hide Menu';
+      quick.classList.toggle('left-2', !collapsed);
+      quick.classList.toggle('left-4', collapsed);
+      localStorage.setItem('studioflow_admin_sidebar_collapsed', collapsed ? '1' : '0');
+    }
+
+    function toggleSidebar() {
+      const current = localStorage.getItem('studioflow_admin_sidebar_collapsed') === '1';
+      applySidebarState(!current);
+    }
+
+    applySidebarState(localStorage.getItem('studioflow_admin_sidebar_collapsed') === '1');
+    initDashboard();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Support | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #ffffff; color: #0f172a; }
+    .input-field { width: 100%; padding: 16px; border: 1px solid #e2e8f0; border-radius: 16px; outline: none; transition: 0.2s; background: #f8fafc; }
+    .input-field:focus { border-color: #0f766e; background: white; box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.05); }
+  </style>
+</head>
+<body class="py-12 px-6">
+
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-16">
+      <a href="portal.html" class="text-xs font-black uppercase text-teal-600 tracking-widest">← Back to Portal</a>
+      <h1 class="text-4xl font-black mt-4">How can I help?</h1>
+      <p class="text-slate-500 mt-2 font-medium">Have a question about your credits or the app? Send me a message below.</p>
+    </header>
+
+    <div class="grid md:grid-cols-5 gap-12">
+      <div class="md:col-span-3">
+        <form id="supportForm" class="space-y-4">
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Subject</label>
+            <select id="subject" class="input-field mt-1 font-bold text-sm">
+              <option>Booking Issue</option>
+              <option>Credit/Payment Question</option>
+              <option>Technical Bug</option>
+              <option>General Inquiry</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Message</label>
+            <textarea id="message" rows="5" class="input-field mt-1 text-sm font-medium" placeholder="Describe your issue in detail..."></textarea>
+          </div>
+
+          <button type="button" onclick="sendSupportEmail()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-700 transition shadow-xl">
+            Send Message
+          </button>
+        </form>
+      </div>
+
+      <div class="md:col-span-2 space-y-8">
+        <div>
+          <h3 class="text-xs font-black uppercase text-teal-600 tracking-widest mb-3">Direct Contact</h3>
+          <p class="text-sm font-bold text-slate-900">your-email@example.com</p>
+          <p class="text-xs text-slate-500 mt-1">Typical response: Under 24h</p>
+        </div>
+
+        <div class="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+          <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest mb-3">Quick Tip</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            If you're having trouble booking, try refreshing the page or checking your credit balance in the portal dashboard.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function sendSupportEmail() {
+        const user = await StudioFlowAPI.getCurrentStudent();
+        const subject = document.getElementById('subject').value;
+        const body = document.getElementById('message').value;
+        
+        if(!body) return alert("Please enter a message.");
+
+        const mailtoLink = `mailto:your-email@example.com?subject=${encodeURIComponent(subject + " - " + (user ? user.name : 'Guest'))}&body=${encodeURIComponent(body)}`;
+        
+        window.location.href = mailtoLink;
+        
+        // Let the user know we've opened their email app
+        alert("Opening your email app to send the message...");
+    }
+  </script>
+
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

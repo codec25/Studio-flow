@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Manage Services | StudioFlow</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; transition: background 0.3s; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); }
+    .input-field { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 14px; outline: none; transition: all 0.2s; font-size: 14px; background: white; }
+    .input-field:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+    .btn-primary { background: #0f766e; color: white; padding: 12px; border-radius: 14px; font-weight: 800; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary:hover { background: #134e4a; transform: translateY(-1px); }
+
+    /* Dark Mode Support */
+    .dark body { background: #0f172a; color: #f8fafc; }
+    .dark .card { background: #1e293b; border-color: #334155; }
+    .dark .input-field { background: #0f172a; border-color: #334155; color: white; }
+    .dark .bg-slate-50 { background: #0f172a !important; }
+    .dark .text-slate-500 { color: #94a3b8; }
+    
+    .hidden { display: none; }
+    
+    /* Custom Checkbox Styles */
+    .day-pill { transition: all 0.2s; border: 1px solid #e2e8f0; }
+    .dark .day-pill { border-color: #334155; }
+    input:checked + .day-pill { background: #0f766e; border-color: #0f766e; color: white; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <a href="admin.html" class="p-2 bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded-xl transition text-slate-400 hover:text-teal-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+          </a>
+          <h1 class="text-3xl font-black tracking-tight">Services & Availability</h1>
+        </div>
+        <p class="text-slate-500 font-medium ml-12">Set your rates and teaching windows.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="toggleServicesPanelBtn" onclick="toggleServicesPanel()" class="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Hide Side Panel</button>
+        <button onclick="window.print()" class="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Print Schedule</button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <aside id="servicesAside" class="lg:col-span-4 space-y-6">
+        <div class="card p-8 border-t-8 border-teal-600">
+          <h2 class="text-xs font-black uppercase text-teal-700 dark:text-teal-400 tracking-widest mb-6">Create New Service</h2>
+          
+          <div class="space-y-5">
+            <div>
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Service Name</label>
+              <input type="text" id="srvName" placeholder="e.g. Piano Lesson" class="input-field mt-1">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Duration (Min)</label>
+                <input type="number" id="srvDur" placeholder="45" class="input-field mt-1">
+              </div>
+              <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Rate ($)</label>
+                <input type="number" id="srvPrice" placeholder="60" class="input-field mt-1">
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Teaching Window</label>
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <input type="time" id="srvStart" value="09:00" class="input-field">
+                <input type="time" id="srvEnd" value="17:00" class="input-field">
+              </div>
+              <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">StudioFlow will auto-calculate bookable slots based on this window.</p>
+            </div>
+
+            <div>
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Active Days</label>
+              <div id="dayCheckboxes" class="grid grid-cols-4 gap-2 mt-2">
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="1" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">MON</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="2" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">TUE</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="3" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">WED</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="4" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">THU</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="5" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">FRI</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="6" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">SAT</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="checkbox" value="0" class="hidden peer">
+                  <div class="day-pill p-3 rounded-xl text-center text-[10px] font-black peer-checked:bg-teal-600 peer-checked:text-white">SUN</div>
+                </label>
+              </div>
+            </div>
+
+            <button onclick="handleAdd()" class="w-full btn-primary mt-4 shadow-xl shadow-teal-900/10">
+              Create Service Offering
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main id="servicesMain" class="lg:col-span-8 space-y-4">
+        <h2 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2">Active Studio Offerings</h2>
+        <div id="serviceList" class="grid gap-4">
+            </div>
+      </main>
+
+    </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function init() {
+      // Dark Mode Persistence
+      if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+      
+      const teacher = await StudioFlowAPI.getCurrentTeacher();
+      if (!teacher) {
+        window.location.href = `auth.html?role=teacher`;
+        return;
+      }
+      refreshList();
+    }
+
+    async function refreshList() {
+      const services = await StudioFlowAPI.listServices();
+      const container = document.getElementById('serviceList');
+      
+      if (!services || services.length === 0) {
+        container.innerHTML = `
+          <div class="p-20 text-center card border-dashed border-2 dark:border-slate-800 bg-transparent shadow-none">
+            <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            </div>
+            <p class="text-slate-400 font-bold uppercase text-xs tracking-widest">No services active</p>
+            <p class="text-slate-500 text-sm mt-2 font-medium">Define your first lesson type to start accepting bookings.</p>
+          </div>`;
+        return;
+      }
+
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      container.innerHTML = services.map(s => {
+        const days = (s.weeklySlots || []).map(slot => dayNames[slot.day]);
+        const timeStr = s.weeklySlots && s.weeklySlots[0] ? `${s.weeklySlots[0].start} - ${s.weeklySlots[0].end}` : "";
+
+        return `
+          <div class="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-teal-200 dark:hover:border-teal-900/50 transition-colors">
+            <div class="flex-1">
+              <div class="flex items-center gap-3">
+                 <h3 class="font-black text-slate-900 dark:text-white text-xl">${s.name}</h3>
+                 <span class="px-3 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-[10px] font-black rounded-full uppercase">$${s.price}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-4 mt-3">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-xs font-bold text-slate-500">${s.duration} minutes</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="text-xs font-bold text-slate-500">${days.join(', ')}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1c-1.11 0-2.08-.402-2.599-1M12 8V7m0 11v1m0-1c1.11 0 2.08-.402 2.599-1M12 18V7"></path></svg>
+                    <span class="text-xs font-bold text-slate-500">${timeStr}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="handleDelete('${s.id}')" class="flex-1 md:flex-initial p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition border border-transparent hover:border-rose-100 dark:hover:border-rose-900/30">
+                  <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleAdd() {
+      const name = document.getElementById('srvName').value.trim();
+      const duration = parseInt(document.getElementById('srvDur').value);
+      const price = parseFloat(document.getElementById('srvPrice').value);
+      const startTime = document.getElementById('srvStart').value;
+      const endTime = document.getElementById('srvEnd').value;
+      const selectedDays = Array.from(document.querySelectorAll('#dayCheckboxes input:checked')).map(cb => parseInt(cb.value));
+
+      if (!name || isNaN(duration) || isNaN(price) || selectedDays.length === 0) {
+        alert("Oops! Please provide a name, duration, price, and select at least one day.");
+        return;
+      }
+
+      const weeklySlots = selectedDays.map(day => ({
+        day,
+        start: startTime,
+        end: endTime
+      }));
+
+      await StudioFlowAPI.createService({
+        name,
+        duration,
+        price,
+        capacity: 1,
+        weeklySlots
+      });
+
+      // UI Reset
+      document.getElementById('srvName').value = '';
+      document.getElementById('srvDur').value = '';
+      document.getElementById('srvPrice').value = '';
+      document.querySelectorAll('#dayCheckboxes input').forEach(cb => cb.checked = false);
+
+      refreshList();
+    }
+
+    async function handleDelete(id) {
+      if(confirm("Are you sure? Removing this service will prevent new students from booking it, but existing bookings will remain.")) {
+        await StudioFlowAPI.deleteService(id);
+        refreshList();
+      }
+    }
+
+    function applyServicesPanelState(collapsed) {
+      const aside = document.getElementById('servicesAside');
+      const main = document.getElementById('servicesMain');
+      const btn = document.getElementById('toggleServicesPanelBtn');
+      if (!aside || !main || !btn) return;
+      aside.classList.toggle('hidden', collapsed);
+      main.classList.toggle('lg:col-span-12', collapsed);
+      if (!collapsed) {
+        main.classList.add('lg:col-span-8');
+      } else {
+        main.classList.remove('lg:col-span-8');
+      }
+      btn.textContent = collapsed ? 'Show Side Panel' : 'Hide Side Panel';
+      localStorage.setItem('studioflow_services_panel_collapsed', collapsed ? '1' : '0');
+    }
+
+    function toggleServicesPanel() {
+      const current = localStorage.getItem('studioflow_services_panel_collapsed') === '1';
+      applyServicesPanelState(!current);
+    }
+
+    applyServicesPanelState(localStorage.getItem('studioflow_services_panel_collapsed') === '1');
+    init();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

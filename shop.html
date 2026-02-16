@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Store | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; }
+    .shop-card { 
+      background: white; border-radius: 32px; padding: 2.5rem; 
+      border: 1px solid #e2e8f0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .shop-card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); border-color: #0f766e; }
+    .dark body { background: #0f172a; color: #f8fafc; }
+    .dark .shop-card { background: #1e293b; border-color: #334155; }
+  </style>
+</head>
+<body class="p-6 md:p-12">
+  <div class="max-w-5xl mx-auto">
+    
+    <header class="text-center mb-16">
+      <a href="portal.html" class="text-xs font-black uppercase text-teal-600 tracking-widest hover:underline">← Back to Portal</a>
+      <h1 class="text-4xl font-black mt-4 tracking-tight">Refill Your Credits</h1>
+      <p class="text-slate-500 mt-2 font-medium">Choose a bundle and keep your momentum going.</p>
+    </header>
+
+    <div id="shopGrid" class="grid md:grid-cols-3 gap-8">
+      </div>
+
+    <footer class="mt-20 text-center border-t border-slate-200 dark:border-slate-800 pt-8">
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Secure Payment Processing via StudioFlow</p>
+    </footer>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function initShop() {
+        // Sync Theme
+        if (localStorage.getItem('studioflow_theme') === 'dark') document.documentElement.classList.add('dark');
+
+        const packages = await StudioFlowAPI.getPackages();
+        const student = await StudioFlowAPI.getCurrentStudent();
+        
+        const grid = document.getElementById('shopGrid');
+        
+        if (!packages || packages.length === 0) {
+            grid.innerHTML = `<div class="col-span-3 text-center py-12 text-slate-400 font-bold italic">No packages available at the moment.</div>`;
+            return;
+        }
+
+        grid.innerHTML = packages.map(pkg => `
+            <div class="shop-card flex flex-col relative overflow-hidden">
+                ${pkg.count >= 10 ? '<div class="absolute top-4 right-[-35px] bg-teal-600 text-white text-[10px] font-black py-1 px-10 rotate-45">BEST VALUE</div>' : ''}
+                
+                <h3 class="text-xl font-extrabold text-slate-900 dark:text-white mb-1">${pkg.name}</h3>
+                <div class="flex items-baseline gap-1 mb-6">
+                    <span class="text-4xl font-black text-teal-700 dark:text-teal-400">$${pkg.price}</span>
+                    <span class="text-xs font-bold text-slate-400">/ ${pkg.count} Sessions</span>
+                </div>
+
+                <ul class="space-y-3 mb-8 flex-1">
+                    <li class="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        ${pkg.count} Session Credits
+                    </li>
+                    <li class="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        Credits never expire
+                    </li>
+                    <li class="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        Priority Scheduling
+                    </li>
+                </ul>
+
+                <button onclick="handlePurchase('${pkg.id}', '${pkg.name}')" 
+                        class="w-full py-4 bg-slate-900 dark:bg-teal-600 text-white rounded-2xl font-black text-sm tracking-widest hover:scale-[1.02] transition active:scale-95 shadow-xl">
+                    PURCHASE
+                </button>
+            </div>
+        `).join('');
+    }
+
+    async function handlePurchase(id, name) {
+        const student = await StudioFlowAPI.getCurrentStudent();
+        if (!student) {
+            alert("Please log in to purchase credits.");
+            return;
+        }
+
+        if (confirm(`Confirm purchase of ${name}?`)) {
+            try {
+                const result = await StudioFlowAPI.purchasePackage(student.email, id);
+                alert(`Success! Your new balance is ${result.newTotal} credits.`);
+                window.location.href = 'portal.html';
+            } catch (e) {
+                alert("Purchase failed: " + e.message);
+            }
+        }
+    }
+
+    initShop();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>
