@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Login | StudioFlow</title>
+  
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: radial-gradient(circle at 0 0, #ccfbf1 0%, #f8fafc 44%); color: #0f172a; min-height: 100vh; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 20px 40px rgba(15,23,42,.06); }
+    .field { width: 100%; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px 16px; outline: none; transition: all 0.2s; background: #fcfdfe; }
+    .field:focus { border-color: #0f766e; background: white; box-shadow: 0 0 0 4px rgba(15,118,110,.08); }
+    .btn { width: 100%; border-radius: 14px; padding: 12px; font-weight: 800; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+    .btn-main { background: #0f766e; color: #fff; border: none; }
+    .btn-main:hover { background: #134e4a; transform: translateY(-1px); }
+    .btn-sub { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; }
+    .btn-sub:hover { background: #f1f5f9; }
+    .hidden { display: none; }
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      main { min-height: 75vh; display: flex; align-items: stretch; }
+      .card { min-height: 75vh; width: 100%; display: flex; flex-direction: column; justify-content: center; }
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center">
+  <main class="w-full max-w-lg">
+    <section class="card p-6 md:p-10 space-y-6">
+      <header class="text-center">
+        <a href="index.html" class="text-xs uppercase tracking-[0.2em] font-black text-teal-700 hover:opacity-70 transition">StudioFlow.</a>
+        <h1 id="headline" class="text-3xl font-extrabold mt-4">Welcome back</h1>
+        <p id="subline" class="text-sm text-slate-500 mt-2">Sign in to manage your studio experience.</p>
+      </header>
+
+      <div class="grid grid-cols-2 gap-3 p-1.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <button id="roleStudent" class="btn text-sm">Student</button>
+        <button id="roleTeacher" class="btn text-sm">Teacher</button>
+      </div>
+
+      <div class="space-y-3">
+        <div id="registerFields" class="hidden">
+          <input id="name" class="field" placeholder="Full Name (for your studio)">
+          <input id="username" class="field mt-3" placeholder="Username (optional)">
+        </div>
+        <input id="email" class="field" placeholder="Username or email" type="text">
+        <input id="password" class="field" placeholder="Password" type="password">
+        <label class="flex items-center gap-2 text-xs text-slate-500 font-bold">
+          <input id="showPassword" type="checkbox" class="h-4 w-4">
+          Show password text
+        </label>
+      </div>
+
+      <div class="space-y-3">
+        <button id="btnMainAction" class="btn btn-main">Sign In</button>
+        
+        <button id="btnPasskeyLogin" class="btn btn-sub">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
+          Biometric Login
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <button id="btnSwitchToRegister" class="btn btn-sub text-sm hidden">I'm a new Teacher (Register)</button>
+        <button id="btnSwitchToLogin" class="btn btn-sub text-sm hidden">Already have an account? Sign In</button>
+        <a href="register.html" id="btnCreateStudent" class="btn btn-sub text-sm text-center">New Student? Create Account</a>
+      </div>
+
+      <details class="group border-t border-slate-100 pt-4">
+        <summary class="list-none cursor-pointer flex justify-between items-center text-xs font-black uppercase tracking-widest text-slate-400 hover:text-teal-600 transition">
+          Account Recovery
+          <svg class="w-4 h-4 group-open:rotate-180 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </summary>
+        <div class="mt-5 space-y-4">
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnRequestCode" class="btn btn-sub text-[10px]">Email Reset Code</button>
+            <button id="btnEnrollPasskey" class="btn btn-sub text-[10px]">Link Biometrics</button>
+          </div>
+          <div class="space-y-2">
+            <input id="resetCode" class="field text-sm" placeholder="Verification Code">
+            <input id="newPassword" class="field text-sm" placeholder="New Password" type="password">
+            <label class="flex items-center gap-2 text-xs text-slate-500 font-bold">
+              <input id="showNewPassword" type="checkbox" class="h-4 w-4">
+              Show new password text
+            </label>
+            <button id="btnApplyCodeReset" class="btn btn-main text-sm">Apply New Password</button>
+          </div>
+        </div>
+      </details>
+
+      <p id="feedback" class="text-sm font-bold text-center min-h-[20px]"></p>
+    </section>
+  </main>
+
+  <script src="app-api.js"></script>
+  <script src="pwa-init.js"></script>
+  
+  <script>
+    let role = 'student';
+    let isRegisterMode = false;
+    const params = new URLSearchParams(location.search);
+    const nextTarget = params.get('next');
+
+    const q = (id) => document.getElementById(id);
+
+    function setFeedback(msg, isOk) {
+      q('feedback').textContent = msg;
+      q('feedback').className = `text-sm font-bold text-center ${isOk ? 'text-emerald-600' : 'text-rose-600'}`;
+    }
+
+    function go(url) {
+      window.location.assign(url);
+      setTimeout(() => { window.location.href = url; }, 350);
+    }
+
+    function updateUI() {
+      // Set Active Role Tab
+      q('roleStudent').className = role === 'student' ? 'btn btn-main text-sm' : 'btn btn-sub text-sm';
+      q('roleTeacher').className = role === 'teacher' ? 'btn btn-main text-sm' : 'btn btn-sub text-sm';
+
+      // Visibility Rules
+      q('btnCreateStudent').classList.toggle('hidden', role !== 'student');
+      q('btnCreateStudent').href = `register.html${nextTarget ? `?next=${encodeURIComponent(nextTarget)}` : ''}`;
+      
+      if (role === 'teacher') {
+        q('btnSwitchToRegister').classList.toggle('hidden', isRegisterMode);
+        q('btnSwitchToLogin').classList.toggle('hidden', !isRegisterMode);
+        q('registerFields').classList.toggle('hidden', !isRegisterMode);
+        q('btnMainAction').textContent = isRegisterMode ? "Register as Teacher" : "Sign In";
+        q('headline').textContent = isRegisterMode ? "Create Studio" : "Welcome back";
+      } else {
+        q('registerFields').classList.add('hidden');
+        q('btnSwitchToRegister').classList.add('hidden');
+        q('btnSwitchToLogin').classList.add('hidden');
+        q('btnMainAction').textContent = "Sign In";
+        q('headline').textContent = "Welcome back";
+      }
+    }
+
+    // --- Core Logic Functions ---
+
+    async function handleMainAction() {
+      const identifier = q('email').value.trim();
+      const password = q('password').value;
+      const name = q('name').value.trim();
+      const username = q('username').value.trim();
+
+      if (!identifier || !password) return setFeedback('Username/email and password required.', false);
+
+      try {
+        if (isRegisterMode && role === 'teacher') {
+          if (!name) return setFeedback('Please enter your full name.', false);
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.toLowerCase())) {
+            return setFeedback('Teacher registration requires a valid email.', false);
+          }
+          const created = await StudioFlowAPI.registerTeacher({ name, username, email: identifier, password });
+          if (created && created.cloud && created.cloud.pendingConfirmation) {
+            setFeedback('Check your email to confirm your teacher account, then sign in.', true);
+            const dest = `auth.html?role=teacher&email=${encodeURIComponent(identifier)}&verify=1${nextTarget ? `&next=${encodeURIComponent(nextTarget)}` : ''}`;
+            setTimeout(() => go(dest), 900);
+            return;
+          }
+          setFeedback('Account created! Signing in...', true);
+        }
+
+        if (role === 'teacher') await StudioFlowAPI.loginTeacher(identifier, password);
+        else await StudioFlowAPI.loginStudent(identifier, password);
+        
+        if (role === 'teacher') {
+          go(nextTarget || 'admin.html');
+        } else {
+          go(nextTarget || 'portal.html');
+        }
+      } catch (e) {
+        setFeedback(e.message, false);
+      }
+    }
+
+    async function handlePasskey() {
+      const identifier = q('email').value.trim();
+      if (!identifier) return setFeedback('Enter username or email for biometric login.', false);
+      try {
+        await StudioFlowAPI.loginWithPasskey(role, identifier);
+        if (role === 'teacher') go(nextTarget || 'admin.html');
+        else go(nextTarget || 'portal.html');
+      } catch (e) { setFeedback(e.message, false); }
+    }
+
+    async function handleRequestCode() {
+      const identifier = q('email').value.trim();
+      if (!identifier) return setFeedback('Enter username or email to receive code.', false);
+      try {
+        const res = await StudioFlowAPI.requestPasswordReset(role, identifier, 'email');
+        setFeedback(`Reset code sent! (Demo Code: ${res.demoCode})`, true);
+      } catch (e) { setFeedback(e.message, false); }
+    }
+
+    async function handleApplyReset() {
+      const identifier = q('email').value.trim();
+      const code = q('resetCode').value.trim();
+      const newPass = q('newPassword').value;
+      if (!code || !newPass) return setFeedback('Enter code and new password.', false);
+      try {
+        await StudioFlowAPI.resetPasswordWithCode(role, identifier, code, newPass);
+        setFeedback('Password updated! Please sign in.', true);
+        isRegisterMode = false;
+        updateUI();
+      } catch (e) { setFeedback(e.message, false); }
+    }
+
+    async function handleEnrollPasskey() {
+      const identifier = q('email').value.trim();
+      const password = q('password').value;
+      if (!identifier || !password) return setFeedback('Enter credentials to link biometrics.', false);
+      try {
+        await StudioFlowAPI.registerPasskey(role, identifier, password);
+        setFeedback('Biometrics linked successfully!', true);
+      } catch (e) { setFeedback(e.message, false); }
+    }
+
+    // --- Event Listeners ---
+
+    q('roleStudent').addEventListener('click', () => { role = 'student'; isRegisterMode = false; updateUI(); });
+    q('roleTeacher').addEventListener('click', () => { role = 'teacher'; updateUI(); });
+    q('btnSwitchToRegister').addEventListener('click', () => { isRegisterMode = true; updateUI(); });
+    q('btnSwitchToLogin').addEventListener('click', () => { isRegisterMode = false; updateUI(); });
+
+    q('btnMainAction').addEventListener('click', handleMainAction);
+    q('btnPasskeyLogin').addEventListener('click', handlePasskey);
+    q('btnRequestCode').addEventListener('click', handleRequestCode);
+    q('btnApplyCodeReset').addEventListener('click', handleApplyReset);
+    q('btnEnrollPasskey').addEventListener('click', handleEnrollPasskey);
+    q('showPassword').addEventListener('change', (e) => {
+      q('password').type = e.target.checked ? 'text' : 'password';
+    });
+    q('showNewPassword').addEventListener('change', (e) => {
+      q('newPassword').type = e.target.checked ? 'text' : 'password';
+    });
+
+    // Initial load check for role in URL
+    if (params.get('role') === 'teacher') role = 'teacher';
+    if (params.get('email')) q('email').value = params.get('email');
+    if (params.get('created') === '1') setFeedback('Account created. Please sign in.', true);
+    if (params.get('verify') === '1') setFeedback('Verify your email from inbox, then sign in.', true);
+    updateUI();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

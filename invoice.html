@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; -webkit-print-color-adjust: exact; }
+    
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display: none !important; }
+      .card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+      .print-border { border-bottom: 2px solid #0f172a !important; }
+    }
+    
+    .card { background: white; border: 1px solid #e2e8f0; }
+    .table-head { border-bottom: 2px solid #0f172a; }
+  </style>
+</head>
+<body class="p-4 md:p-12">
+
+  <div class="max-w-4xl mx-auto no-print flex justify-between items-center mb-8">
+    <button onclick="window.history.back()" class="group text-sm font-bold text-slate-500 hover:text-teal-700 flex items-center gap-2 transition">
+      <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      Back to Client Directory
+    </button>
+    <button onclick="window.print()" class="px-6 py-3 bg-teal-700 text-white rounded-xl font-bold shadow-lg shadow-teal-900/20 hover:bg-teal-800 transition transform hover:-translate-y-0.5">
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <div class="max-w-4xl mx-auto card p-10 md:p-16 shadow-2xl overflow-hidden relative">
+    
+    <div class="absolute top-0 right-0 w-32 h-32 bg-teal-50 opacity-50 rounded-bl-full no-print"></div>
+
+    <header class="flex flex-col md:flex-row justify-between items-start border-b border-slate-100 pb-10 relative">
+      <div>
+        <h1 class="text-5xl font-black tracking-tighter text-teal-700">INVOICE</h1>
+        <div class="flex items-center gap-3 mt-2">
+          <p class="text-slate-400 font-black uppercase tracking-widest text-[10px]" id="invNumber">INV-000000</p>
+          <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+          <p class="text-slate-400 font-black uppercase tracking-widest text-[10px]" id="invDate">FEBRUARY 14, 2026</p>
+        </div>
+      </div>
+      <div class="mt-6 md:mt-0 text-left md:text-right">
+        <h2 class="font-black text-xl text-slate-900" id="studioNameDisplay">StudioFlow Admin</h2>
+        <p class="text-sm text-slate-500 font-medium" id="studioEmailDisplay">loading...</p>
+      </div>
+    </header>
+
+    <div class="py-12">
+      <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Recipient Details</p>
+      <div class="flex flex-col md:flex-row justify-between gap-6">
+        <div>
+          <p class="font-black text-2xl text-slate-900" id="clientName">Student Name</p>
+          <p class="text-slate-500 font-medium" id="clientEmail">student@email.com</p>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-[200px]">
+          <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Account Status</p>
+          <p class="text-sm font-bold text-slate-700" id="clientStats">0 Total Bookings</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="table-head">
+            <th class="py-4 text-[10px] font-black uppercase tracking-widest text-slate-900">Service Description</th>
+            <th class="py-4 text-[10px] font-black uppercase tracking-widest text-slate-900 text-center">Qty</th>
+            <th class="py-4 text-[10px] font-black uppercase tracking-widest text-slate-900 text-right">Unit Price</th>
+            <th class="py-4 text-[10px] font-black uppercase tracking-widest text-slate-900 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceRows">
+          </tbody>
+      </table>
+    </div>
+
+    <div class="mt-10 pt-10 border-t border-slate-100 flex justify-end">
+      <div class="w-full md:w-72 space-y-4">
+        <div class="flex justify-between items-center text-sm font-medium">
+          <span class="text-slate-500">Subtotal</span>
+          <span class="text-slate-900 font-bold" id="subtotal">$0.00</span>
+        </div>
+        <div class="flex justify-between items-center text-sm font-medium">
+          <div class="flex items-center gap-1">
+            <span class="text-slate-500">Tax</span>
+            <span class="text-[10px] font-black bg-slate-100 px-1.5 py-0.5 rounded text-slate-400" id="taxRateLabel">0%</span>
+          </div>
+          <span class="text-slate-900 font-bold" id="taxTotal">$0.00</span>
+        </div>
+        <div class="flex justify-between items-center text-2xl border-t-2 border-slate-900 pt-5">
+          <span class="font-black tracking-tight text-slate-900">Total Amount</span>
+          <span class="font-black text-teal-700" id="grandTotal">$0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-20 grid md:grid-cols-2 gap-8 items-end">
+      <div class="p-6 bg-teal-50/50 rounded-3xl border border-teal-100/50">
+        <p class="text-[10px] font-black uppercase text-teal-700 tracking-widest mb-3">Payment Instructions</p>
+        <p class="text-xs text-teal-900/70 leading-relaxed italic" id="paymentNotes">
+          Please settle this invoice within 7 days. You can top up your credits directly via your Student Portal using the Stripe link provided, or send an E-Transfer to the studio email listed above.
+        </p>
+      </div>
+      <div class="text-left md:text-right pb-4">
+        <p class="text-[10px] font-black uppercase text-slate-300 tracking-widest">Thank you for your business!</p>
+        <p class="text-xs font-bold text-slate-400 mt-1">Generated by StudioFlow PWA</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function generateInvoice() {
+      // 1. Get client email from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const email = urlParams.get('email');
+      
+      if (!email) {
+        alert("Error: No client email provided in URL.");
+        return;
+      }
+
+      // 2. Fetch all necessary data
+      const teacher = await StudioFlowAPI.getCurrentTeacher();
+      const clients = await StudioFlowAPI.listClients();
+      const client = clients.find(c => c.email === email);
+      const bookings = await StudioFlowAPI.listBookings({ clientEmail: email });
+      const taxConfig = await StudioFlowAPI.getTaxConfig();
+      
+      if (!client) {
+        alert("Client not found.");
+        return;
+      }
+
+      // 3. Populate Header & Profile Info
+      document.getElementById('studioNameDisplay').textContent = teacher.name || "StudioFlow Admin";
+      document.getElementById('studioEmailDisplay').textContent = teacher.email;
+      document.getElementById('clientName').textContent = client.name;
+      document.getElementById('clientEmail').textContent = client.email;
+      document.getElementById('clientStats').textContent = `${bookings.length} Total Bookings on Record`;
+      
+      const dateOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+      document.getElementById('invDate').textContent = new Date().toLocaleDateString('en-US', dateOptions).toUpperCase();
+      document.getElementById('invNumber').textContent = `INV-${Date.now().toString().slice(-6)}`;
+
+      // 4. Filter for billable bookings (Not Cancelled)
+      // Tip: You could further filter this by "date range" if needed
+      const billable = bookings.filter(b => b.status !== 'cancelled');
+
+      // 5. Render Rows & Calculate Math
+      let subtotal = 0;
+      const rowsContainer = document.getElementById('invoiceRows');
+      
+      if (billable.length === 0) {
+        rowsContainer.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400 italic">No billable sessions found for this period.</td></tr>`;
+      } else {
+        rowsContainer.innerHTML = billable.map(b => {
+          const price = b.price || 0;
+          subtotal += price;
+          return `
+            <tr class="border-b border-slate-50 hover:bg-slate-50/50 transition">
+              <td class="py-6">
+                <p class="font-black text-slate-800 text-sm">${StudioFlowAPI.utils.safeText(b.serviceName)}</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">${b.date} • ${b.time}</p>
+              </td>
+              <td class="py-6 text-center font-bold text-slate-600 text-sm">1</td>
+              <td class="py-6 text-right font-bold text-slate-500 text-sm">${StudioFlowAPI.utils.formatMoney(price)}</td>
+              <td class="py-6 text-right font-black text-slate-900 text-sm">${StudioFlowAPI.utils.formatMoney(price)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 6. Tax & Grand Totals
+      const rate = taxConfig.rate || 0;
+      const taxAmount = subtotal * (rate / 100);
+      const grandTotal = subtotal + taxAmount;
+
+      document.getElementById('taxRateLabel').textContent = `${rate}%`;
+      document.getElementById('subtotal').textContent = StudioFlowAPI.utils.formatMoney(subtotal);
+      document.getElementById('taxTotal').textContent = StudioFlowAPI.utils.formatMoney(taxAmount);
+      document.getElementById('grandTotal').textContent = StudioFlowAPI.utils.formatMoney(grandTotal);
+    }
+
+    // Run on load
+    window.onload = generateInvoice;
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

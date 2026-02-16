@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Receipts | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; }
+    .receipt-card { background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 1.5rem; transition: 0.2s; }
+    .receipt-card:hover { border-color: #0f766e; transform: translateY(-2px); }
+  </style>
+</head>
+<body class="p-6 md:p-12">
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-10 flex justify-between items-end">
+      <div>
+        <a href="admin.html" class="text-xs font-black uppercase text-teal-600 tracking-widest">← Dashboard</a>
+        <h1 class="text-3xl font-black mt-2">Billing History</h1>
+      </div>
+      <div class="text-right">
+        <p class="text-[10px] font-black text-slate-400 uppercase">Monthly Revenue</p>
+        <p id="totalRev" class="text-2xl font-black text-slate-900">$0.00</p>
+      </div>
+    </header>
+
+    <div id="receiptList" class="space-y-4">
+      </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function init() {
+      const transactions = await StudioFlowAPI.getTransactions(); // Assuming your API has this
+      const list = document.getElementById('receiptList');
+      let total = 0;
+
+      if (!transactions || transactions.length === 0) {
+        list.innerHTML = `<div class="text-center py-20 text-slate-400 font-bold">No transactions found.</div>`;
+        return;
+      }
+
+      for (const t of transactions) {
+        total += t.amount;
+        const template = await StudioFlowAPI.getEmailTemplate('PURCHASE_RECEIPT', {
+            clientName: t.clientName,
+            clientEmail: t.clientEmail,
+            packageName: t.packageName,
+            credits: t.credits,
+            amount: t.amount
+        });
+
+        const div = document.createElement('div');
+        div.className = "receipt-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4";
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">$${t.amount}</span>
+                <h3 class="font-bold text-slate-900">${t.packageName}</h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">${t.clientName} (${t.clientEmail}) • ${new Date(t.date).toLocaleDateString()}</p>
+          </div>
+          <a href="${template.mailto}" class="w-full md:w-auto text-center px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-teal-700 transition">
+            Send Receipt Email
+          </a>
+        `;
+        list.appendChild(div);
+      }
+      document.getElementById('totalRev').innerText = `$${total.toFixed(2)}`;
+    }
+    init();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

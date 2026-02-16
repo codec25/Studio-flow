@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Student Portal | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+    .field { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 14px; outline: none; background: #fcfdfe; transition: 0.2s; }
+    .field:focus { border-color: #0f766e; background: white; box-shadow: 0 0 0 3px rgba(15,118,110,0.1); }
+    .btn-action { background: #0f766e; color: white; border-radius: 14px; font-weight: 800; transition: all 0.2s; }
+    .btn-action:hover:not(:disabled) { background: #115e59; transform: translateY(-1px); }
+    .btn-action:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .status-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.05em; }
+    .hidden { display: none; }
+    .modal-backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+    .notes-box { background: #f1f5f9; border-left: 4px solid #0f766e; }
+    .hw-box { background: #fff1f2; border-left: 4px solid #e11d48; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <header class="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-teal-600 rounded-2xl flex items-center justify-center text-white font-black text-xl">
+          <span id="userInitials">...</span>
+        </div>
+        <div>
+          <h1 id="welcomeUser" class="text-xl font-extrabold text-slate-900 tracking-tight">Welcome</h1>
+          <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Student Portal</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="support.html" class="hidden md:block px-4 py-2 text-xs font-black uppercase text-slate-400 hover:text-teal-700 transition">Support</a>
+        <button id="logoutBtn" class="p-3 text-slate-400 hover:text-rose-500 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-1 space-y-6">
+        <section class="card p-6 border-teal-100 bg-gradient-to-br from-white to-teal-50/30">
+          <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Available Credits</p>
+          <div class="flex items-end gap-2">
+            <span id="displayCredits" class="text-5xl font-black text-teal-700 leading-none">0</span>
+            <span class="text-sm font-bold text-teal-600 mb-1">Sessions</span>
+          </div>
+          <div id="paymentPrompt" class="mt-4 pt-4 border-t border-teal-100">
+            <p class="text-[10px] font-bold text-slate-500 mb-3 uppercase">Need more sessions?</p>
+            <button onclick="alert('Redirecting to secure checkout...')" class="block w-full py-3 bg-teal-700 text-white rounded-xl text-center text-xs font-black uppercase tracking-widest shadow-lg shadow-teal-100">Buy Credit Pack</button>
+          </div>
+        </section>
+
+        <section class="card p-6 space-y-4">
+          <h2 class="text-sm font-black uppercase tracking-widest text-slate-400">Quick Book</h2>
+          <div class="space-y-3">
+            <select id="bookService" class="field text-sm font-bold"></select>
+            <input type="date" id="bookDate" class="field text-sm font-bold">
+            <select id="bookSlot" class="field text-sm font-bold">
+              <option>Pick a date...</option>
+            </select>
+          </div>
+          <button id="btnBook" class="w-full py-4 btn-action text-sm">Confirm Booking</button>
+          <p id="bookFeedback" class="text-center text-[11px] font-bold min-h-[1.2rem]"></p>
+        </section>
+      </div>
+
+      <div class="lg:col-span-2 space-y-6">
+        <section class="card p-6 min-h-[400px]">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-black text-slate-900">Your Schedule & Progress</h2>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Lesson History</span>
+          </div>
+          <div id="bookingList" class="space-y-4">
+             </div>
+        </section>
+
+        <section class="card p-6 border-teal-100 bg-gradient-to-br from-white to-teal-50/40">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-black text-slate-900">Learning Hub</h2>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Recaps & Resources</span>
+          </div>
+          <div id="learningHubList" class="space-y-4"></div>
+        </section>
+
+        <section class="card p-6 border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-black text-slate-900">Private Student Chat</h2>
+            <span class="text-[10px] font-bold text-slate-400 uppercase">1:1 Messages</span>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+              <input id="msgTo" class="field text-sm" placeholder="Recipient username or email">
+              <textarea id="msgBody" class="field text-sm min-h-[110px]" placeholder="Write a private message..."></textarea>
+              <button id="btnSendMessage" class="w-full py-3 btn-action text-xs uppercase tracking-widest">Send Message</button>
+              <p id="msgFeedback" class="text-[11px] font-bold min-h-[1rem]"></p>
+            </div>
+            <div class="space-y-3">
+              <div id="threadList" class="space-y-2 max-h-[160px] overflow-y-auto"></div>
+              <div id="conversationBox" class="space-y-2 max-h-[220px] overflow-y-auto border border-slate-100 rounded-2xl p-3 bg-white"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card p-6 border-rose-100 bg-rose-50/20">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-rose-900">Account Safety</h3>
+              <p class="text-[10px] text-rose-600 font-medium">Delete your profile and all lesson history.</p>
+            </div>
+            <button onclick="toggleDeleteModal(true)" class="px-4 py-2 bg-white border border-rose-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-600 hover:text-white transition">Delete Profile</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="py-10 text-center border-t border-slate-200 mt-12">
+      <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+        © 2026 StudioFlow • Designed & Managed by [Your Name]
+      </p>
+      <div class="mt-4 flex justify-center gap-6">
+        <button onclick="toggleTerms(true)" class="text-[10px] font-bold text-slate-400 hover:text-teal-600 transition uppercase tracking-widest">Terms & Cancellation Policy</button>
+        <a href="support.html" class="text-[10px] font-bold text-slate-400 hover:text-teal-600 transition uppercase tracking-widest">Support</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="deleteModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+      <h3 class="text-xl font-extrabold text-slate-900">Delete Account?</h3>
+      <p class="text-sm text-slate-500 mt-2">This is permanent. All lesson notes and remaining credits will be wiped.</p>
+      <div class="mt-6 space-y-3">
+        <button onclick="handleDeleteAccount()" class="w-full py-4 bg-rose-600 text-white font-black rounded-2xl hover:bg-rose-700 transition uppercase text-xs tracking-widest">Delete Everything</button>
+        <button onclick="toggleDeleteModal(false)" class="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl uppercase text-xs tracking-widest">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="termsModal" class="hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+    <div class="bg-white rounded-[32px] p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+      <h3 class="text-2xl font-black text-slate-900 mb-4">Terms & Privacy</h3>
+      <div class="space-y-4 text-sm text-slate-600 leading-relaxed">
+        <p><strong>1. Cancellation:</strong> Lessons cancelled with less than 24h notice will not be credited back.</p>
+        <p><strong>2. Refunds:</strong> Credit packs are non-refundable but transferable.</p>
+        <p><strong>3. Data:</strong> Your lesson notes and history are stored locally on your device.</p>
+      </div>
+      <button onclick="toggleTerms(false)" class="mt-8 w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-xs tracking-widest">I Understand</button>
+    </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    let currentUser = null;
+    let activePeerIdentifier = '';
+
+    async function init() {
+      currentUser = await StudioFlowAPI.getCurrentStudent();
+      if (!currentUser) {
+        window.location.href = 'auth.html?role=student';
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('bookDate').value = today;
+      document.getElementById('bookDate').min = today;
+      document.getElementById('userInitials').textContent = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+
+      await renderPortal();
+    }
+
+    async function renderPortal() {
+      const clients = await StudioFlowAPI.listClients();
+      currentUser = clients.find(c => c.email === currentUser.email);
+      
+      document.getElementById('welcomeUser').textContent = `Hi, ${currentUser.name.split(' ')[0]}!`;
+      document.getElementById('displayCredits').textContent = currentUser.credits;
+
+      const btn = document.getElementById('btnBook');
+      if (currentUser.credits < 1) {
+        btn.disabled = true;
+        btn.textContent = "Buy Credits to Book";
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Confirm Booking (-1)";
+      }
+
+      const services = await StudioFlowAPI.listServices();
+      document.getElementById('bookService').innerHTML = services.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+      const bookings = await StudioFlowAPI.listBookings({ clientEmail: currentUser.email });
+      const sorted = bookings.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+      
+      const listEl = document.getElementById('bookingList');
+      listEl.innerHTML = sorted.length === 0 
+        ? `<div class="text-center py-20 border-2 border-dashed border-slate-100 rounded-3xl"><p class="text-slate-400 text-sm font-bold">No sessions found.</p></div>`
+        : sorted.map(b => `
+          <div class="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center text-[9px] font-black text-slate-400">
+                  <span class="text-slate-900 text-xs">${b.date.split('-')[2]}</span>
+                  <span>${new Date(b.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900">${b.serviceName}</p>
+                  <p class="text-xs text-slate-500 font-medium">${b.time}</p>
+                </div>
+              </div>
+              <span class="status-badge ${getStatusClass(b.status)}">${b.status.replace('_', ' ')}</span>
+            </div>
+
+            ${(b.teacherNotes || b.homework) ? `
+              <div class="grid md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50">
+                ${b.teacherNotes ? `
+                  <div class="notes-box p-3 rounded-r-xl">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lesson Notes</p>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">${b.teacherNotes}</p>
+                  </div>
+                ` : ''}
+                ${b.homework ? `
+                  <div class="hw-box p-3 rounded-r-xl">
+                    <p class="text-[9px] font-black text-rose-400 uppercase tracking-widest">Homework</p>
+                    <p class="text-xs text-slate-800 font-bold mt-1 leading-relaxed">${b.homework}</p>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+      
+      await updateSlots();
+      await renderLearningHub();
+      await renderMessages();
+    }
+
+    async function renderLearningHub() {
+      const recaps = await StudioFlowAPI.listLessonRecaps({ studentEmail: currentUser.email });
+      const wrap = document.getElementById('learningHubList');
+      if (!recaps.length) {
+        wrap.innerHTML = '<div class="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl"><p class="text-slate-400 text-sm font-bold">No lesson recaps yet. Your teacher posts them after class.</p></div>';
+        return;
+      }
+
+      wrap.innerHTML = recaps.map((r) => `
+        <article class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <p class="font-black text-sm text-slate-900">${r.serviceName || 'Lesson Recap'}</p>
+            <span class="text-[10px] font-black uppercase text-teal-700 bg-teal-100 px-2 py-1 rounded-lg">${r.date} ${r.time}</span>
+          </div>
+          <p class="text-sm text-slate-700 leading-relaxed">${StudioFlowAPI.utils.safeText(r.summary)}</p>
+          ${Array.isArray(r.resources) && r.resources.length ? `
+            <div class="mt-3 pt-3 border-t border-slate-100">
+              <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Resources</p>
+              <div class="flex flex-wrap gap-2">
+                ${r.resources.map((link) => `<a class="px-3 py-1.5 rounded-xl border border-teal-200 text-teal-700 text-xs font-bold hover:bg-teal-50" href="${StudioFlowAPI.utils.safeText(link)}" target="_blank" rel="noopener">Open Resource</a>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </article>
+      `).join('');
+    }
+
+    function getStatusClass(s) {
+      const map = {
+        confirmed: 'bg-emerald-100 text-emerald-700',
+        pending: 'bg-amber-100 text-amber-700',
+        completed: 'bg-teal-600 text-white',
+        cancelled: 'bg-rose-100 text-rose-700',
+        cancelled_late: 'bg-rose-100 text-rose-700'
+      };
+      return map[s] || 'bg-slate-200 text-slate-500';
+    }
+
+    async function updateSlots() {
+      const serviceId = document.getElementById('bookService').value;
+      const date = document.getElementById('bookDate').value;
+      const slotSelect = document.getElementById('bookSlot');
+      if (!serviceId) return;
+      
+      try {
+        const slots = await StudioFlowAPI.listBookableSlots(serviceId, date);
+        if (slots.length === 0) {
+          slotSelect.innerHTML = '<option value="">No times available</option>';
+        } else {
+          slotSelect.innerHTML = slots.map(s => `
+            <option value="${s.time}" ${s.available ? '' : 'disabled'}>
+              ${s.time} ${s.available ? '' : '(Full)'}
+            </option>`).join('');
+        }
+      } catch (e) {
+        slotSelect.innerHTML = '<option value="">Error loading times</option>';
+      }
+    }
+
+    async function handleBooking() {
+      const serviceId = document.getElementById('bookService').value;
+      const date = document.getElementById('bookDate').value;
+      const time = document.getElementById('bookSlot').value;
+
+      if (!time) return setMsg('Select a time.', false);
+
+      try {
+        await StudioFlowAPI.createBooking({
+          serviceId, date, time,
+          clientName: currentUser.name,
+          clientEmail: currentUser.email,
+          status: 'confirmed'
+        });
+        
+        setMsg('Booked!', true);
+        await renderPortal();
+      } catch (err) { setMsg(err.message, false); }
+    }
+
+    async function renderMessages() {
+      const threads = await StudioFlowAPI.listStudentMessageThreads();
+      const threadList = document.getElementById('threadList');
+      if (!threads.length) {
+        threadList.innerHTML = '<p class="text-xs text-slate-400 font-bold">No conversations yet.</p>';
+        document.getElementById('conversationBox').innerHTML = '<p class="text-xs text-slate-400 font-bold">Start by sending a message.</p>';
+        return;
+      }
+
+      threadList.innerHTML = threads.map((t) => `
+        <button class="w-full text-left p-3 border rounded-xl ${activePeerIdentifier === t.peerEmail ? 'border-teal-300 bg-teal-50' : 'border-slate-100 bg-white'}" onclick="openThread('${StudioFlowAPI.utils.safeText(t.peerEmail)}')">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-black text-slate-800">${StudioFlowAPI.utils.safeText(t.peerName)} <span class="text-slate-400">@${StudioFlowAPI.utils.safeText(t.peerUsername || '')}</span></p>
+            ${t.unreadCount ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-black">${t.unreadCount}</span>` : ''}
+          </div>
+          <p class="text-[11px] text-slate-500 truncate mt-1">${StudioFlowAPI.utils.safeText(t.lastMessage)}</p>
+        </button>
+      `).join('');
+
+      if (!activePeerIdentifier) activePeerIdentifier = threads[0].peerEmail;
+      await openThread(activePeerIdentifier);
+    }
+
+    async function openThread(peerIdentifier) {
+      activePeerIdentifier = peerIdentifier;
+      document.getElementById('msgTo').value = peerIdentifier;
+      await StudioFlowAPI.markStudentThreadRead(peerIdentifier);
+      const msgs = await StudioFlowAPI.listPrivateStudentMessages(peerIdentifier);
+      const box = document.getElementById('conversationBox');
+      if (!msgs.length) {
+        box.innerHTML = '<p class="text-xs text-slate-400 font-bold">No messages yet.</p>';
+        return;
+      }
+      box.innerHTML = msgs.map((m) => {
+        const mine = m.fromEmail === currentUser.email;
+        return `
+          <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[85%] px-3 py-2 rounded-2xl text-xs ${mine ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'}">
+              <p>${StudioFlowAPI.utils.safeText(m.body)}</p>
+              <p class="mt-1 opacity-75 text-[10px]">${new Date(m.createdAt).toLocaleString()}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function handleSendMessage() {
+      const to = document.getElementById('msgTo').value.trim();
+      const body = document.getElementById('msgBody').value.trim();
+      if (!to || !body) return setMsgFeedback('Recipient and message are required.', false);
+      try {
+        const sent = await StudioFlowAPI.sendPrivateStudentMessage(to, body);
+        document.getElementById('msgBody').value = '';
+        activePeerIdentifier = sent.toEmail;
+        setMsgFeedback('Message sent.', true);
+        await renderMessages();
+      } catch (e) {
+        setMsgFeedback(e.message || 'Failed to send message.', false);
+      }
+    }
+
+    function setMsgFeedback(message, ok) {
+      const el = document.getElementById('msgFeedback');
+      el.className = `text-[11px] font-bold min-h-[1rem] ${ok ? 'text-emerald-600' : 'text-rose-600'}`;
+      el.textContent = message;
+      if (ok) setTimeout(() => { el.textContent = ''; }, 2000);
+    }
+
+    function toggleDeleteModal(show) { document.getElementById('deleteModal').classList.toggle('hidden', !show); }
+    function toggleTerms(show) { document.getElementById('termsModal').classList.toggle('hidden', !show); }
+
+    async function handleDeleteAccount() {
+      try {
+        await StudioFlowAPI.deleteCurrentStudent();
+        window.location.href = 'index.html';
+      } catch (e) {
+        alert("Error deleting account: " + e.message);
+      }
+    }
+
+    function setMsg(m, ok) {
+      const el = document.getElementById('bookFeedback');
+      el.className = `text-center text-[11px] font-bold min-h-[1.2rem] ${ok ? 'text-emerald-600' : 'text-rose-600'}`;
+      el.textContent = m;
+      if (ok) setTimeout(() => el.textContent = '', 3000);
+    }
+
+    document.getElementById('bookService').addEventListener('change', updateSlots);
+    document.getElementById('bookDate').addEventListener('change', updateSlots);
+    document.getElementById('btnBook').addEventListener('click', handleBooking);
+    document.getElementById('btnSendMessage').addEventListener('click', handleSendMessage);
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('studioflow_student_session');
+      window.location.href = 'index.html';
+    });
+
+    window.openThread = openThread;
+
+    init();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

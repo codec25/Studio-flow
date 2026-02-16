@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lesson Notes | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; }
+    .editor-card { background: white; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.05); }
+    .field { width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; outline: none; transition: 0.2s; }
+    .field:focus { border-color: #0f766e; ring: 4px rgba(15,118,110,0.05); }
+  </style>
+</head>
+<body class="p-6 md:p-12">
+  <div class="max-w-2xl mx-auto">
+    <header class="mb-8">
+      <a href="admin.html" class="text-xs font-black uppercase text-teal-600 tracking-widest">← Back to Schedule</a>
+      <h1 id="headerName" class="text-3xl font-black mt-2">Lesson Notes</h1>
+      <p id="headerSub" class="text-slate-500 font-medium"></p>
+    </header>
+
+    <div class="editor-card p-8 space-y-6">
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">What we covered</label>
+        <textarea id="teacherNotes" class="field mt-2 h-32" placeholder="Topics, techniques, song progress..."></textarea>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-black uppercase text-rose-400 tracking-widest ml-1">Homework / Goals</label>
+        <textarea id="homework" class="field mt-2 h-32 border-rose-100 bg-rose-50/30" placeholder="What should they practice this week?"></textarea>
+      </div>
+
+      <button onclick="saveLesson()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-teal-800 transition shadow-xl">
+        Save & Mark Completed
+      </button>
+    </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('id');
+
+    async function init() {
+      if (!bookingId) return;
+      const b = await StudioFlowAPI.getBookingDetails(bookingId);
+      document.getElementById('headerName').innerText = `Notes for ${b.clientName}`;
+      document.getElementById('headerSub').innerText = `${b.serviceName} • ${b.date}`;
+      document.getElementById('teacherNotes').value = b.teacherNotes || '';
+      document.getElementById('homework').value = b.homework || '';
+    }
+
+    async function saveLesson() {
+      const notes = document.getElementById('teacherNotes').value;
+      const hw = document.getElementById('homework').value;
+      
+      await StudioFlowAPI.updateBookingNotes(bookingId, notes, hw);
+      alert("✅ Notes saved! The student can now see these in their portal.");
+      window.location.href = 'admin.html';
+    }
+
+    init();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>

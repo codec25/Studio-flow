@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Billing & Tax | StudioFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; background: #f8fafc; color: #0f172a; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; }
+    .field { width: 100%; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; outline: none; transition: 0.2s; }
+    .field:focus { border-color: #0f766e; ring: 3px rgba(15,118,110,0.1); }
+    .btn-save { background: #0f766e; color: white; border-radius: 12px; font-weight: 800; padding: 12px 24px; transition: 0.2s; }
+    .btn-save:hover { background: #134e4a; transform: translateY(-1px); }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <header class="flex justify-between items-center">
+      <div>
+        <a href="admin.html" class="text-[10px] font-black uppercase tracking-widest text-teal-700 flex items-center gap-1 hover:underline">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+          Back to Admin
+        </a>
+        <h1 class="text-3xl font-black mt-2">Studio Finance</h1>
+      </div>
+    </header>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      
+      <section class="space-y-6">
+        <div class="card p-6 space-y-4">
+          <h2 class="text-sm font-black uppercase text-slate-400 tracking-widest">Payment Methods</h2>
+          <p class="text-xs text-slate-500">These links will be shown to students when their credits are low.</p>
+          
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Stripe Checkout Link</label>
+            <input type="text" id="stripeLink" placeholder="https://buy.stripe.com/..." class="field mt-1">
+          </div>
+          
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-400 ml-1">E-Transfer Email (Display Only)</label>
+            <input type="email" id="etransferEmail" placeholder="studio@email.com" class="field mt-1">
+          </div>
+        </div>
+
+        <div class="card p-6 space-y-4">
+          <h2 class="text-sm font-black uppercase text-slate-400 tracking-widest">Tax Configuration</h2>
+          <p class="text-xs text-slate-500">Set aside a percentage of gross revenue for tax obligations.</p>
+          
+          <div class="flex items-center gap-4">
+            <div class="flex-1">
+              <label class="text-[10px] font-black uppercase text-slate-400 ml-1">Tax Rate (%)</label>
+              <input type="number" id="taxRate" placeholder="25" class="field mt-1">
+            </div>
+            <div class="w-24 p-4 bg-teal-50 rounded-2xl text-center">
+                <p class="text-[10px] font-black text-teal-600 uppercase">Status</p>
+                <p class="font-bold text-teal-700">Active</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card p-6 flex flex-col">
+        <h2 class="text-sm font-black uppercase text-slate-400 tracking-widest mb-4">Studio Expenses</h2>
+        
+        <div class="space-y-3 mb-6">
+          <div class="flex gap-2">
+            <input type="text" id="expNote" placeholder="Rent, Gear, Software..." class="field flex-1">
+            <input type="number" id="expAmount" placeholder="$" class="field w-24">
+          </div>
+          <button onclick="addExpense()" class="w-full py-3 border-2 border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition">Add Expense Entry</button>
+        </div>
+
+        <div class="flex-1 space-y-2 overflow-y-auto max-h-[300px]" id="expenseList">
+          </div>
+      </section>
+
+    </div>
+
+    <div class="flex justify-end pt-4">
+        <button onclick="saveAllSettings()" class="btn-save shadow-lg shadow-teal-900/20">Save All Changes</button>
+    </div>
+  </div>
+
+  <script src="app-api.js"></script>
+  <script>
+    async function init() {
+      const pay = JSON.parse(localStorage.getItem('studio_payments')) || { stripe: '', etransfer: '' };
+      const tax = await StudioFlowAPI.getTaxConfig();
+      
+      document.getElementById('stripeLink').value = pay.stripe;
+      document.getElementById('etransferEmail').value = pay.etransfer;
+      document.getElementById('taxRate').value = tax.rate;
+
+      renderExpenses();
+    }
+
+    async function renderExpenses() {
+      const expenses = await StudioFlowAPI.listExpenses();
+      const list = document.getElementById('expenseList');
+      
+      list.innerHTML = expenses.length ? expenses.map(e => `
+        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <div>
+            <p class="text-sm font-bold text-slate-800">${e.note}</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase">${e.date}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-black text-rose-600">-$${e.amount}</span>
+            <button onclick="deleteExpense('${e.id}')" class="text-slate-300 hover:text-rose-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
+      `).join('') : '<p class="text-xs text-slate-400 italic text-center py-8">No expenses logged yet.</p>';
+    }
+
+    async function addExpense() {
+      const note = document.getElementById('expNote').value;
+      const amount = parseFloat(document.getElementById('expAmount').value);
+      
+      if (!note || isNaN(amount)) return alert("Enter a note and amount.");
+      
+      await StudioFlowAPI.addExpense({ note, amount });
+      document.getElementById('expNote').value = '';
+      document.getElementById('expAmount').value = '';
+      renderExpenses();
+    }
+
+    async function deleteExpense(id) {
+        if (!confirm("Delete this entry?")) return;
+        await StudioFlowAPI.deleteExpense(id);
+        renderExpenses();
+    }
+
+    async function saveAllSettings() {
+      const pay = {
+        stripe: document.getElementById('stripeLink').value,
+        etransfer: document.getElementById('etransferEmail').value
+      };
+      const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+
+      localStorage.setItem('studio_payments', JSON.stringify(pay));
+      await StudioFlowAPI.updateTaxConfig({ rate: taxRate });
+      
+      alert("Settings saved successfully!");
+    }
+
+    init();
+  </script>
+
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+    <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
+  </footer>
+</body>
+</html>
