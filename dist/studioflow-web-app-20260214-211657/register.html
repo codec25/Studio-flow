@@ -47,11 +47,6 @@
           </div>
 
           <div>
-            <label class="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Username</label>
-            <input type="text" id="regUsername" required minlength="3" placeholder="jane_music" class="input-field mt-1">
-          </div>
-
-          <div>
             <label class="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Phone Number</label>
             <input type="tel" id="regPhone" required placeholder="1-555-000-0000" class="input-field mt-1">
           </div>
@@ -66,10 +61,6 @@
               <input type="password" id="regPasswordConfirm" required minlength="6" placeholder="••••••" class="input-field mt-1">
             </div>
           </div>
-          <label class="flex items-center gap-2 text-xs text-slate-500 font-bold">
-            <input id="showRegisterPasswords" type="checkbox" class="h-4 w-4">
-            Show password text
-          </label>
 
           <div>
             <label class="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">How did you hear about us?</label>
@@ -106,12 +97,9 @@
         </p>
       </div>
     </section>
-  </main><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </main>
+
+  <script src="app-api.js"></script>
   <script src="pwa-init.js"></script>
 
   <script>
@@ -122,11 +110,6 @@
       const el = document.getElementById('feedback');
       el.className = 'text-center text-xs font-bold ' + (ok ? 'text-emerald-600' : 'text-rose-600');
       el.textContent = message;
-    }
-
-    function go(url) {
-      window.location.assign(url);
-      setTimeout(() => { window.location.href = url; }, 350);
     }
 
     document.getElementById('regForm').addEventListener('submit', async function (e) {
@@ -142,7 +125,6 @@
       const payload = {
         name: document.getElementById('regName').value.trim(),
         email: document.getElementById('regEmail').value.trim().toLowerCase(),
-        username: document.getElementById('regUsername').value.trim().toLowerCase(),
         phone: document.getElementById('regPhone').value.trim(),
         password: pass,
         referredBy: document.getElementById('regReferral').value,
@@ -155,23 +137,16 @@
 
       try {
         // 1. Register
-        const created = await StudioFlowAPI.registerStudent(payload);
-
-        if (created && created.cloud && created.cloud.pendingConfirmation) {
-          setFeedback('Check your email to confirm your account. Redirecting to sign in...', true);
-          const loginUrl = `auth.html?role=student&email=${encodeURIComponent(payload.email)}&verify=1&next=${encodeURIComponent(nextTarget)}`;
-          setTimeout(() => go(loginUrl), 1000);
-          return;
-        }
+        await StudioFlowAPI.registerStudent(payload);
         
         // 2. Immediate Login Attempt
         try {
           await StudioFlowAPI.loginStudent(payload.email, payload.password);
           setFeedback('Account created! Entering the studio...', true);
-          setTimeout(() => go(nextTarget), 900);
+          setTimeout(() => { window.location.href = nextTarget; }, 1200);
         } catch (loginErr) {
           // Fallback if auto-login fails
-          go(`auth.html?role=student&email=${encodeURIComponent(payload.email)}&created=1&next=${encodeURIComponent(nextTarget)}`);
+          window.location.href = `auth.html?role=student&email=${encodeURIComponent(payload.email)}&created=1`;
         }
       } catch (error) {
         setFeedback(error.message, false);
@@ -183,14 +158,9 @@
     // Update Sign In link to preserve role and destination
     const loginLink = `auth.html?role=student&next=${encodeURIComponent(nextTarget)}`;
     document.getElementById('signInPrimary').href = loginLink;
-    document.getElementById('showRegisterPasswords').addEventListener('change', (e) => {
-      const type = e.target.checked ? 'text' : 'password';
-      document.getElementById('regPassword').type = type;
-      document.getElementById('regPasswordConfirm').type = type;
-    });
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

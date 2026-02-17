@@ -76,9 +76,12 @@
       <button id="submitBtn" class="w-full py-4 rounded-2xl text-white font-black cta-book text-lg">Confirm Manual Entry</button>
       <p id="feedback" class="text-sm font-bold text-center min-h-[1.25rem] mt-4"></p>
     </main>
-  </div>
-
-  <script src="app-api.js"></script>
+  </div><script>
+  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
+  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-api.js"></script>
   <script>
     let services = [];
     let clients = [];

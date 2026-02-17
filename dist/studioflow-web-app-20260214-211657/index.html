@@ -89,22 +89,23 @@
       <div class="space-y-6 text-sm text-slate-600 leading-relaxed">
         <div>
           <h4 class="font-bold text-slate-900 uppercase text-[11px] tracking-widest mb-2">1. Cancellation Policy</h4>
-          <p>Lessons cancelled with less than 24 hours' notice will not be credited back to your account.</p>
+          <p>Lessons cancelled with less than 24 hours' notice will not be credited back to your account. This policy ensures our coaches can maintain a stable schedule.</p>
         </div>
         <div>
           <h4 class="font-bold text-slate-900 uppercase text-[11px] tracking-widest mb-2">2. Refunds & Credits</h4>
-          <p>Credit packs are non-refundable but transferable.</p>
+          <p>Credit packs are non-refundable but are fully transferable to friends or family members. All credits expire 6 months from the date of purchase.</p>
         </div>
         <div>
           <h4 class="font-bold text-slate-900 uppercase text-[11px] tracking-widest mb-2">3. Your Privacy</h4>
-          <p>Your lesson data is stored locally on your device.</p>
+          <p>We believe in data sovereignty. Your personal lesson data and history are stored <strong>locally on your device</strong>. We do not sell or track your personal information for third-party advertising.</p>
         </div>
       </div>
-      <button onclick="toggleTerms(false)" class="mt-10 w-full py-4 bg-slate-900 text-white font-black rounded-2xl">Close</button>
+      <button onclick="toggleTerms(false)" class="mt-10 w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-xs tracking-widest hover:bg-teal-700 transition">Close</button>
     </div>
   </div>
 
   <script>
+    // UI Update logic
     (function() {
       const teacherSession = localStorage.getItem('studioflow_teacher_session');
       const studentSession = localStorage.getItem('studioflow_student_session');
@@ -127,11 +128,12 @@
       window.location.reload();
     }
 
+    // Modal logic
     function toggleTerms(show) {
       const modal = document.getElementById('termsModal');
       if (show) {
         modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; // Prevent scroll
       } else {
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
@@ -141,17 +143,8 @@
 
   <script src="pwa-init.js"></script>
 
-  <!-- ✅ Supabase Integration --><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
-  <script src="app-ui.js"></script>
-
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
-
 </body>
 </html>

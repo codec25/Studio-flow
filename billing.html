@@ -84,9 +84,12 @@
     <div class="flex justify-end pt-4">
         <button onclick="saveAllSettings()" class="btn-save shadow-lg shadow-teal-900/20">Save All Changes</button>
     </div>
-  </div>
-
-  <script src="app-api.js"></script>
+  </div><script>
+  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
+  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-api.js"></script>
   <script>
     async function init() {
       const pay = JSON.parse(localStorage.getItem('studio_payments')) || { stripe: '', etransfer: '' };

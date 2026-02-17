@@ -38,7 +38,6 @@
         <p class="text-sm text-slate-500 font-medium ml-12">CRM, Credit Tracking & Ledger</p>
       </div>
       <div class="flex gap-3">
-        <button id="toggleClientPanelBtn" onclick="toggleClientPanel()" class="px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition shadow-sm">Hide Side Panel</button>
         <button id="remindBtn" onclick="remindOverdueStudents()" class="hidden flex items-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-700 transition shadow-lg shadow-rose-900/20">
           Remind Overdue (<span id="overdueCount">0</span>)
         </button>
@@ -64,7 +63,7 @@
     </section>
 
     <div class="grid lg:grid-cols-12 gap-8">
-      <main id="clientsMain" class="lg:col-span-7 xl:col-span-8 no-print">
+      <main class="lg:col-span-7 xl:col-span-8 no-print">
         <div class="card overflow-hidden">
           <table class="w-full text-sm">
             <thead>
@@ -80,7 +79,7 @@
         </div>
       </main>
 
-      <aside id="clientsAside" class="lg:col-span-5 xl:col-span-4">
+      <aside class="lg:col-span-5 xl:col-span-4">
         <div id="historyPanel" class="card p-6 sticky top-8 min-h-[600px] border-dashed border-2 dark:border-slate-700 flex flex-col transition-all">
           
           <div id="historyEmpty" class="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -99,7 +98,6 @@
                 <div class="flex gap-2">
                     <button id="btnInvoice" class="px-4 py-2 bg-slate-900 text-white dark:bg-teal-700 text-[10px] font-black uppercase rounded-lg hover:opacity-90 transition">View Invoice</button>
                     <button id="btnRemind" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase rounded-lg hover:bg-slate-200 transition">Reminder</button>
-                    <button id="btnDeleteStudent" class="px-4 py-2 bg-rose-600 text-white text-[10px] font-black uppercase rounded-lg hover:bg-rose-700 transition">Delete</button>
                 </div>
               </div>
               <div class="text-right">
@@ -130,12 +128,9 @@
         </div>
       </aside>
     </div>
-  </div><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </div>
+
+  <script src="app-api.js"></script>
   <script>
     let clients = [];
     let selectedEmail = null;
@@ -223,19 +218,6 @@
           const next = bookings.find(b => ['confirmed', 'pending'].includes(b.status));
           if (next) StudioFlowAPI.sendReminder(next.id);
           else alert("No upcoming sessions found.");
-      };
-      document.getElementById('btnDeleteStudent').onclick = async () => {
-          const ok = window.confirm(`Delete ${client.name}'s account permanently? This removes bookings, recaps, and ledger records.`);
-          if (!ok) return;
-          try {
-            await StudioFlowAPI.deleteStudentByEmail(client.email);
-            selectedEmail = null;
-            document.getElementById('historyContent').classList.add('hidden');
-            document.getElementById('historyEmpty').classList.remove('hidden');
-            await loadData();
-          } catch (e) {
-            alert(e.message || 'Failed to delete account.');
-          }
       };
 
       // Sessions
@@ -330,35 +312,12 @@
         link.click();
     }
 
-    function applyClientPanelState(collapsed) {
-      const aside = document.getElementById('clientsAside');
-      const main = document.getElementById('clientsMain');
-      const btn = document.getElementById('toggleClientPanelBtn');
-      if (!aside || !main || !btn) return;
-      aside.classList.toggle('hidden', collapsed);
-      main.classList.toggle('lg:col-span-12', collapsed);
-      main.classList.toggle('xl:col-span-12', collapsed);
-      if (!collapsed) {
-        main.classList.add('lg:col-span-7', 'xl:col-span-8');
-      } else {
-        main.classList.remove('lg:col-span-7', 'xl:col-span-8');
-      }
-      btn.textContent = collapsed ? 'Show Side Panel' : 'Hide Side Panel';
-      localStorage.setItem('studioflow_clients_panel_collapsed', collapsed ? '1' : '0');
-    }
-
-    function toggleClientPanel() {
-      const current = localStorage.getItem('studioflow_clients_panel_collapsed') === '1';
-      applyClientPanelState(!current);
-    }
-
     document.getElementById('search').addEventListener('input', renderClients);
     document.getElementById('statusFilter').addEventListener('change', renderClients);
-    applyClientPanelState(localStorage.getItem('studioflow_clients_panel_collapsed') === '1');
     init();
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

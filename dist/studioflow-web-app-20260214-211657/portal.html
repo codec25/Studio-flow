@@ -81,33 +81,6 @@
              </div>
         </section>
 
-        <section class="card p-6 border-teal-100 bg-gradient-to-br from-white to-teal-50/40">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-black text-slate-900">Learning Hub</h2>
-            <span class="text-[10px] font-bold text-slate-400 uppercase">Recaps & Resources</span>
-          </div>
-          <div id="learningHubList" class="space-y-4"></div>
-        </section>
-
-        <section class="card p-6 border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-black text-slate-900">Private Student Chat</h2>
-            <span class="text-[10px] font-bold text-slate-400 uppercase">1:1 Messages</span>
-          </div>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="space-y-3">
-              <input id="msgTo" class="field text-sm" placeholder="Recipient username or email">
-              <textarea id="msgBody" class="field text-sm min-h-[110px]" placeholder="Write a private message..."></textarea>
-              <button id="btnSendMessage" class="w-full py-3 btn-action text-xs uppercase tracking-widest">Send Message</button>
-              <p id="msgFeedback" class="text-[11px] font-bold min-h-[1rem]"></p>
-            </div>
-            <div class="space-y-3">
-              <div id="threadList" class="space-y-2 max-h-[160px] overflow-y-auto"></div>
-              <div id="conversationBox" class="space-y-2 max-h-[220px] overflow-y-auto border border-slate-100 rounded-2xl p-3 bg-white"></div>
-            </div>
-          </div>
-        </section>
-
         <section class="card p-6 border-rose-100 bg-rose-50/20">
           <div class="flex items-center justify-between">
             <div>
@@ -152,15 +125,11 @@
       </div>
       <button onclick="toggleTerms(false)" class="mt-8 w-full py-4 bg-slate-900 text-white font-black rounded-2xl uppercase text-xs tracking-widest">I Understand</button>
     </div>
-  </div><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </div>
+
+  <script src="app-api.js"></script>
   <script>
     let currentUser = null;
-    let activePeerIdentifier = '';
 
     async function init() {
       currentUser = await StudioFlowAPI.getCurrentStudent();
@@ -238,35 +207,6 @@
         `).join('');
       
       await updateSlots();
-      await renderLearningHub();
-      await renderMessages();
-    }
-
-    async function renderLearningHub() {
-      const recaps = await StudioFlowAPI.listLessonRecaps({ studentEmail: currentUser.email });
-      const wrap = document.getElementById('learningHubList');
-      if (!recaps.length) {
-        wrap.innerHTML = '<div class="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl"><p class="text-slate-400 text-sm font-bold">No lesson recaps yet. Your teacher posts them after class.</p></div>';
-        return;
-      }
-
-      wrap.innerHTML = recaps.map((r) => `
-        <article class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <div class="flex items-center justify-between gap-3 mb-3">
-            <p class="font-black text-sm text-slate-900">${r.serviceName || 'Lesson Recap'}</p>
-            <span class="text-[10px] font-black uppercase text-teal-700 bg-teal-100 px-2 py-1 rounded-lg">${r.date} ${r.time}</span>
-          </div>
-          <p class="text-sm text-slate-700 leading-relaxed">${StudioFlowAPI.utils.safeText(r.summary)}</p>
-          ${Array.isArray(r.resources) && r.resources.length ? `
-            <div class="mt-3 pt-3 border-t border-slate-100">
-              <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Resources</p>
-              <div class="flex flex-wrap gap-2">
-                ${r.resources.map((link) => `<a class="px-3 py-1.5 rounded-xl border border-teal-200 text-teal-700 text-xs font-bold hover:bg-teal-50" href="${StudioFlowAPI.utils.safeText(link)}" target="_blank" rel="noopener">Open Resource</a>`).join('')}
-              </div>
-            </div>
-          ` : ''}
-        </article>
-      `).join('');
     }
 
     function getStatusClass(s) {
@@ -321,75 +261,6 @@
       } catch (err) { setMsg(err.message, false); }
     }
 
-    async function renderMessages() {
-      const threads = await StudioFlowAPI.listStudentMessageThreads();
-      const threadList = document.getElementById('threadList');
-      if (!threads.length) {
-        threadList.innerHTML = '<p class="text-xs text-slate-400 font-bold">No conversations yet.</p>';
-        document.getElementById('conversationBox').innerHTML = '<p class="text-xs text-slate-400 font-bold">Start by sending a message.</p>';
-        return;
-      }
-
-      threadList.innerHTML = threads.map((t) => `
-        <button class="w-full text-left p-3 border rounded-xl ${activePeerIdentifier === t.peerEmail ? 'border-teal-300 bg-teal-50' : 'border-slate-100 bg-white'}" onclick="openThread('${StudioFlowAPI.utils.safeText(t.peerEmail)}')">
-          <div class="flex items-center justify-between">
-            <p class="text-xs font-black text-slate-800">${StudioFlowAPI.utils.safeText(t.peerName)} <span class="text-slate-400">@${StudioFlowAPI.utils.safeText(t.peerUsername || '')}</span></p>
-            ${t.unreadCount ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-black">${t.unreadCount}</span>` : ''}
-          </div>
-          <p class="text-[11px] text-slate-500 truncate mt-1">${StudioFlowAPI.utils.safeText(t.lastMessage)}</p>
-        </button>
-      `).join('');
-
-      if (!activePeerIdentifier) activePeerIdentifier = threads[0].peerEmail;
-      await openThread(activePeerIdentifier);
-    }
-
-    async function openThread(peerIdentifier) {
-      activePeerIdentifier = peerIdentifier;
-      document.getElementById('msgTo').value = peerIdentifier;
-      await StudioFlowAPI.markStudentThreadRead(peerIdentifier);
-      const msgs = await StudioFlowAPI.listPrivateStudentMessages(peerIdentifier);
-      const box = document.getElementById('conversationBox');
-      if (!msgs.length) {
-        box.innerHTML = '<p class="text-xs text-slate-400 font-bold">No messages yet.</p>';
-        return;
-      }
-      box.innerHTML = msgs.map((m) => {
-        const mine = m.fromEmail === currentUser.email;
-        return `
-          <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-[85%] px-3 py-2 rounded-2xl text-xs ${mine ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'}">
-              <p>${StudioFlowAPI.utils.safeText(m.body)}</p>
-              <p class="mt-1 opacity-75 text-[10px]">${new Date(m.createdAt).toLocaleString()}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-      box.scrollTop = box.scrollHeight;
-    }
-
-    async function handleSendMessage() {
-      const to = document.getElementById('msgTo').value.trim();
-      const body = document.getElementById('msgBody').value.trim();
-      if (!to || !body) return setMsgFeedback('Recipient and message are required.', false);
-      try {
-        const sent = await StudioFlowAPI.sendPrivateStudentMessage(to, body);
-        document.getElementById('msgBody').value = '';
-        activePeerIdentifier = sent.toEmail;
-        setMsgFeedback('Message sent.', true);
-        await renderMessages();
-      } catch (e) {
-        setMsgFeedback(e.message || 'Failed to send message.', false);
-      }
-    }
-
-    function setMsgFeedback(message, ok) {
-      const el = document.getElementById('msgFeedback');
-      el.className = `text-[11px] font-bold min-h-[1rem] ${ok ? 'text-emerald-600' : 'text-rose-600'}`;
-      el.textContent = message;
-      if (ok) setTimeout(() => { el.textContent = ''; }, 2000);
-    }
-
     function toggleDeleteModal(show) { document.getElementById('deleteModal').classList.toggle('hidden', !show); }
     function toggleTerms(show) { document.getElementById('termsModal').classList.toggle('hidden', !show); }
 
@@ -412,18 +283,15 @@
     document.getElementById('bookService').addEventListener('change', updateSlots);
     document.getElementById('bookDate').addEventListener('change', updateSlots);
     document.getElementById('btnBook').addEventListener('click', handleBooking);
-    document.getElementById('btnSendMessage').addEventListener('click', handleSendMessage);
     document.getElementById('logoutBtn').addEventListener('click', () => {
       localStorage.removeItem('studioflow_student_session');
       window.location.href = 'index.html';
     });
 
-    window.openThread = openThread;
-
     init();
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

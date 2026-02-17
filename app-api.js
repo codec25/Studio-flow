@@ -7,12 +7,28 @@
   const RESET_STORE_KEY = 'studioflow_resetcodes_v1';
   const CLOUD_AUTH_ENABLED = typeof window !== 'undefined' && window.STUDIOFLOW_ENABLE_CLOUD_AUTH === true;
   const STATUS_VALUES = ['pending', 'confirmed', 'completed', 'cancelled', 'cancelled_late'];
+
   const BUILTIN_TEACHER = {
     name: 'Jovi',
     username: 'jovi',
     email: 'moise.sahouo@gmail.com',
     passwordHash: 'a2f405f50b587df7e6930928d9bd93e89fe1e9d4035f81c01d442010ff1d1f01'
   };
+
+  // --- SUPABASE (REQUIRED FOR CLOUD) ---
+  // Set these BEFORE app-api.js loads (recommended in every page, before app-api.js):
+  // window.STUDIOFLOW_SUPABASE_URL = "https://xxxxx.supabase.co"
+  // window.STUDIOFLOW_SUPABASE_ANON_KEY = "xxxxx"
+  const SUPABASE_URL = (typeof window !== 'undefined' && window.STUDIOFLOW_SUPABASE_URL)
+    ? String(window.STUDIOFLOW_SUPABASE_URL).trim()
+    : 'YOUR_SUPABASE_URL_HERE';
+
+  const SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.STUDIOFLOW_SUPABASE_ANON_KEY)
+    ? String(window.STUDIOFLOW_SUPABASE_ANON_KEY).trim()
+    : 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+  const SUPABASE_STUDENTS_TABLE = 'students';
+  const SUPABASE_BOOKINGS_TABLE = 'bookings';
 
   // --- UTILITIES ---
   function deepClone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -27,8 +43,14 @@
     return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
   function safeText(text) {
-    return String(text || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    return String(text || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   }
+
   function loadSuggestions() {
     try { return JSON.parse(localStorage.getItem(SUGGESTIONS_KEY) || '{}'); } catch (_) { return {}; }
   }
@@ -60,6 +82,28 @@
     return window.netlifyIdentity;
   }
 
+  // --- SUPABASE CLIENT ---
+  let supabaseClient = null;
+  function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+    if (typeof window === 'undefined' || !window.supabase || typeof window.supabase.createClient !== 'function') return null;
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+    if (SUPABASE_URL.includes('YOUR_SUPABASE_') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_')) return null;
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return supabaseClient;
+  }
+
+  async function requireSupabase() {
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error(
+        'Supabase is not configured. Make sure you loaded the Supabase script AND set window.STUDIOFLOW_SUPABASE_URL + window.STUDIOFLOW_SUPABASE_ANON_KEY BEFORE app-api.js.'
+      );
+    }
+    return client;
+  }
+
+  // --- NETLIFY IDENTITY (OPTIONAL) ---
   function getIdentityApiBase() {
     if (typeof window === 'undefined' || !window.location) return '/.netlify/identity';
     return `${window.location.origin}/.netlify/identity`;
@@ -229,6 +273,7 @@
   function normalizeStudent(student) {
     return {
       id: student.id || uid('stu'),
+      authUserId: student.authUserId || student["authUserId"] || '',
       name: String(student.name || '').trim(),
       username: String(student.username || '').trim().toLowerCase(),
       email: String(student.email || '').trim().toLowerCase(),
@@ -238,7 +283,8 @@
       paymentStatus: String(student.paymentStatus || 'Pending'),
       isSubscription: student.isSubscription === true,
       lastSubscriptionRefill: String(student.lastSubscriptionRefill || ''),
-      isActive: student.isActive !== false
+      isActive: student.isActive !== false,
+      createdAt: student.createdAt || student["createdAt"] || ''
     };
   }
 
@@ -262,9 +308,9 @@
       serviceName: String(booking.serviceName || ''),
       date: String(booking.date || ''),
       time: String(booking.time || ''),
-      notes: String(booking.notes || ''), // Original booking notes
-      teacherNotes: String(booking.teacherNotes || ''), // Notes from teacher after lesson
-      homework: String(booking.homework || ''), // Homework assigned
+      notes: String(booking.notes || ''),
+      teacherNotes: String(booking.teacherNotes || ''),
+      homework: String(booking.homework || ''),
       price: Number(booking.price || 0),
       status: STATUS_VALUES.includes(booking.status) ? booking.status : 'pending',
       createdAt: booking.createdAt || new Date().toISOString()
@@ -338,9 +384,9 @@
     return {
       services: [], bookings: [], students: [], teachers: [],
       packages: [
-        {id: 1, name: "Single Session", count: 1, price: 60},
-        {id: 2, name: "5-Lesson Pack", count: 5, price: 275},
-        {id: 3, name: "10-Lesson Pack", count: 10, price: 500}
+        { id: 1, name: "Single Session", count: 1, price: 60 },
+        { id: 2, name: "5-Lesson Pack", count: 5, price: 275 },
+        { id: 3, name: "10-Lesson Pack", count: 10, price: 500 }
       ],
       lessonRecaps: [],
       privateMessages: [],
@@ -365,7 +411,9 @@
         privateMessages: (parsed.privateMessages || []).map(normalizeMessage),
         lessonRecaps: (parsed.lessonRecaps || []).map(normalizeRecap)
       };
-    } catch (e) { return emptyState(); }
+    } catch (e) {
+      return emptyState();
+    }
   }
 
   let state = loadState();
@@ -498,42 +546,158 @@
 
     // --- AUTH ---
     async loginStudent(identifier, password) {
-      const user = resolveStudentByIdentifier(identifier);
-      if (!user) throw new Error('Student account not found on this device.');
-      const hash = await hashPassword(password);
-      if (hash !== user.passwordHash) throw new Error('Invalid password.');
-      localStorage.setItem(STUDENT_SESSION_KEY, user.email);
-      return deepClone(user);
+      const normalizedIdentifier = String(identifier || '').trim().toLowerCase();
+      if (!normalizedIdentifier) throw new Error('Email or username is required.');
+      const sb = await requireSupabase();
+
+      const { data: foundStudent, error: findError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .select('*')
+        .or(`email.eq.${normalizedIdentifier},username.eq.${normalizedIdentifier}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (findError) throw new Error(getErrorMessage(findError, 'Unable to find student account.'));
+      if (!foundStudent || !foundStudent.email) throw new Error('Student account not found.');
+
+      const { data: authData, error: signInError } = await sb.auth.signInWithPassword({
+        email: String(foundStudent.email).toLowerCase(),
+        password: String(password || '')
+      });
+      if (signInError) throw new Error(getErrorMessage(signInError, 'Invalid email or password.'));
+
+      let student = normalizeStudent(foundStudent);
+      const localStudent = getStudentByEmail(student.email);
+      if (!localStudent) state.students.push(student);
+      else { Object.assign(localStudent, student); student = localStudent; }
+
+      localStorage.setItem(STUDENT_SESSION_KEY, student.email);
+      saveState();
+
+      return deepClone({
+        ...student,
+        authUserId: authData && authData.user ? authData.user.id : ''
+      });
     },
 
     async getCurrentStudent() {
       refillSubscriptionCreditsIfNeeded();
-      const email = localStorage.getItem(STUDENT_SESSION_KEY);
-      const student = email ? getStudentByEmail(email) : null;
-      return student ? deepClone(student) : null;
+      const sb = getSupabaseClient();
+
+      if (sb) {
+        const { data: authData, error: authError } = await sb.auth.getUser();
+        if (!authError && authData && authData.user && authData.user.email) {
+          const currentEmail = String(authData.user.email).toLowerCase();
+          const { data: row, error: rowError } = await sb
+            .from(SUPABASE_STUDENTS_TABLE)
+            .select('*')
+            .eq('email', currentEmail)
+            .limit(1)
+            .maybeSingle();
+
+          if (rowError) throw new Error(getErrorMessage(rowError, 'Unable to fetch current student.'));
+          if (row) {
+            const normalized = normalizeStudent(row);
+            const existing = getStudentByEmail(currentEmail);
+            if (!existing) state.students.push(normalized);
+            else Object.assign(existing, normalized);
+            localStorage.setItem(STUDENT_SESSION_KEY, currentEmail);
+            saveState();
+            return deepClone(existing || normalized);
+          }
+        }
+      }
+
+      const fallbackEmail = localStorage.getItem(STUDENT_SESSION_KEY);
+      const fallbackStudent = fallbackEmail ? getStudentByEmail(fallbackEmail) : null;
+      return fallbackStudent ? deepClone(fallbackStudent) : null;
     },
 
     async registerStudent(data) {
       const normalizedEmail = String(data.email || '').trim().toLowerCase();
-      if (getStudentByEmail(normalizedEmail)) throw new Error('Email already exists.');
+      if (!normalizedEmail) throw new Error('Email is required.');
+
       const preferredUsername = usernameBase(data.username || normalizedEmail.split('@')[0], 'student');
-      if (findStudentByUsername(preferredUsername)) throw new Error('Username already exists.');
+      const sb = await requireSupabase();
+
+      const { data: existingByEmail, error: emailCheckError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .select('id')
+        .eq('email', normalizedEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (emailCheckError) throw new Error(getErrorMessage(emailCheckError, 'Unable to validate student email.'));
+      if (existingByEmail) throw new Error('Email already exists.');
+
+      const { data: existingByUsername, error: usernameCheckError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .select('id')
+        .eq('username', preferredUsername)
+        .limit(1)
+        .maybeSingle();
+
+      if (usernameCheckError) throw new Error(getErrorMessage(usernameCheckError, 'Unable to validate username.'));
+      if (existingByUsername) throw new Error('Username already exists.');
+
       const normalizedUsername = preferredUsername;
-      const cloud = { enabled: false, pendingConfirmation: false };
       const isSubscription = data.isSubscription === true;
+      const cloud = { enabled: true, pendingConfirmation: false };
+
+      // Supabase Auth
+      const { data: signUpData, error: signUpError } = await sb.auth.signUp({
+        email: normalizedEmail,
+        password: String(data.password || ''),
+        options: {
+          data: {
+            role: 'student',
+            name: String(data.name || '').trim(),
+            username: normalizedUsername,
+            phone: String(data.phone || '').trim()
+          }
+        }
+      });
+
+      if (signUpError) throw new Error(getErrorMessage(signUpError, 'Unable to register student.'));
+      const authUserId = signUpData && signUpData.user ? signUpData.user.id : '';
+      cloud.pendingConfirmation = Boolean(signUpData && signUpData.user && !signUpData.user.email_confirmed_at);
+
+      // Student profile row
       const student = normalizeStudent({
         ...data,
         username: normalizedUsername,
         email: normalizedEmail,
-        passwordHash: await hashPassword(data.password),
+        passwordHash: '',
         isSubscription,
         credits: isSubscription ? Math.max(4, Number(data.credits || 0)) : Number(data.credits || 0),
         lastSubscriptionRefill: isSubscription ? monthKey() : ''
       });
+
+      const profilePayload = {
+        name: student.name,
+        username: student.username,
+        email: student.email,
+        phone: student.phone,
+        credits: student.credits,
+        paymentStatus: student.paymentStatus,
+        isSubscription: student.isSubscription,
+        lastSubscriptionRefill: student.lastSubscriptionRefill,
+        isActive: student.isActive
+      };
+      if (authUserId) profilePayload.authUserId = authUserId;
+
+      const { error: profileError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .insert([profilePayload]);
+
+      if (profileError) throw new Error(getErrorMessage(profileError, 'Unable to save student profile.'));
+
       state.students.push(student);
       addSuggestion('emails', student.email);
       addSuggestion('names', student.name);
       saveState();
+      localStorage.setItem(STUDENT_SESSION_KEY, student.email);
+
       return { ...deepClone(student), cloud };
     },
 
@@ -555,7 +719,9 @@
     async registerTeacher(data) {
       const normalizedEmail = String(data.email || '').trim().toLowerCase();
       if (getTeacherByEmail(normalizedEmail)) throw new Error('Teacher email already exists.');
-      const fallbackUsername = data.username ? data.username : makeUniqueUsername('teacher', normalizedEmail.split('@')[0], 'teacher', normalizedEmail);
+      const fallbackUsername = data.username
+        ? data.username
+        : makeUniqueUsername('teacher', normalizedEmail.split('@')[0], 'teacher', normalizedEmail);
       const normalizedUsername = usernameBase(fallbackUsername, 'teacher');
       const taken = findTeacherByUsername(normalizedUsername);
       if (taken && taken.email !== normalizedEmail) throw new Error('Teacher username already exists.');
@@ -581,9 +747,11 @@
       if (!password) throw new Error('Password required.');
       if (normalizedRole === 'teacher') await this.loginTeacher(normalizedIdentifier, password);
       else await this.loginStudent(normalizedIdentifier, password);
+
       const account = normalizedRole === 'teacher'
         ? resolveTeacherByIdentifier(normalizedIdentifier)
         : resolveStudentByIdentifier(normalizedIdentifier);
+
       if (!account) throw new Error('Account not found.');
       const map = loadPasskeys();
       map[`${normalizedRole}:${account.email}`] = { enrolledAt: new Date().toISOString() };
@@ -597,16 +765,14 @@
       const account = normalizedRole === 'teacher'
         ? resolveTeacherByIdentifier(normalizedIdentifier)
         : resolveStudentByIdentifier(normalizedIdentifier);
+
       if (!account) throw new Error('Account not found.');
       const map = loadPasskeys();
-      if (!map[`${normalizedRole}:${account.email}`]) {
-        throw new Error('No biometrics linked for this account.');
-      }
-      if (normalizedRole === 'teacher') {
-        localStorage.setItem(TEACHER_SESSION_KEY, account.email);
-      } else {
-        localStorage.setItem(STUDENT_SESSION_KEY, account.email);
-      }
+      if (!map[`${normalizedRole}:${account.email}`]) throw new Error('No biometrics linked for this account.');
+
+      if (normalizedRole === 'teacher') localStorage.setItem(TEACHER_SESSION_KEY, account.email);
+      else localStorage.setItem(STUDENT_SESSION_KEY, account.email);
+
       return true;
     },
 
@@ -616,13 +782,11 @@
       const exists = normalizedRole === 'teacher'
         ? resolveTeacherByIdentifier(normalizedIdentifier)
         : resolveStudentByIdentifier(normalizedIdentifier);
+
       if (!exists) throw new Error('Account not found.');
       const code = String(Math.floor(100000 + Math.random() * 900000));
       const map = loadResetCodes();
-      map[`${normalizedRole}:${exists.email}`] = {
-        code,
-        expiresAt: Date.now() + (15 * 60 * 1000)
-      };
+      map[`${normalizedRole}:${exists.email}`] = { code, expiresAt: Date.now() + (15 * 60 * 1000) };
       saveResetCodes(map);
       return { ok: true, demoCode: code };
     },
@@ -633,6 +797,7 @@
       const account = normalizedRole === 'teacher'
         ? resolveTeacherByIdentifier(normalizedIdentifier)
         : resolveStudentByIdentifier(normalizedIdentifier);
+
       if (!account) throw new Error('Account not found.');
       const key = `${normalizedRole}:${account.email}`;
       const map = loadResetCodes();
@@ -641,6 +806,7 @@
       if (Date.now() > Number(row.expiresAt || 0)) throw new Error('Reset code expired.');
       if (String(code || '').trim() !== String(row.code || '')) throw new Error('Invalid verification code.');
       if (String(newPassword || '').length < 6) throw new Error('Password must be at least 6 characters.');
+
       const hash = await hashPassword(newPassword);
       if (normalizedRole === 'teacher') {
         const teacher = getTeacherByEmail(account.email);
@@ -651,6 +817,7 @@
         if (!student) throw new Error('Student account not found.');
         student.passwordHash = hash;
       }
+
       delete map[key];
       saveResetCodes(map);
       saveState();
@@ -678,7 +845,7 @@
     async listBookableSlots(serviceId, date) {
       const service = getServiceById(serviceId);
       if (!service) return [];
-      
+
       const [yy, mm, dd] = String(date).split('-').map(Number);
       if (!yy || !mm || !dd) return [];
       const dayIndex = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
@@ -707,12 +874,16 @@
       });
       const dedup = {};
       slots.forEach(s => { dedup[s.time] = s; });
-      return Object.values(dedup).sort((a,b) => a.time.localeCompare(b.time));
+      return Object.values(dedup).sort((a, b) => a.time.localeCompare(b.time));
     },
 
     async getLowCreditStudents(limit = 1) {
       refillSubscriptionCreditsIfNeeded();
-      return deepClone(state.students.filter(s => Number(s.credits || 0) <= Number(limit)).sort((a,b) => a.credits - b.credits));
+      return deepClone(
+        state.students
+          .filter(s => Number(s.credits || 0) <= Number(limit))
+          .sort((a, b) => a.credits - b.credits)
+      );
     },
 
     async listExpenses() {
@@ -734,10 +905,10 @@
         id: uid('tx'),
         date: new Date().toISOString(),
         clientEmail: clientEmail.toLowerCase(),
-        clientName: getStudentByEmail(clientEmail)?.name || "Unknown",
-        type, 
+        clientName: (getStudentByEmail(clientEmail) && getStudentByEmail(clientEmail).name) ? getStudentByEmail(clientEmail).name : "Unknown",
+        type,
         amount,
-        revenue, 
+        revenue,
         packageName,
         description
       });
@@ -749,13 +920,13 @@
     async getStudentLedger(email) {
       return state.ledger
         .filter(tx => tx.clientEmail === email.toLowerCase())
-        .sort((a,b) => new Date(b.date) - new Date(a.date));
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
     },
 
     async purchasePackage(email, packageId) {
       const pkg = state.packages.find(p => p.id == packageId);
       if (!pkg) throw new Error("Package not found");
-      
+
       await this.adjustCredits(email, pkg.count);
       await this.logTransaction(email, 'credit_in', pkg.count, `Purchased: ${pkg.name}`, pkg.price, pkg.name);
       return { newTotal: getStudentByEmail(email).credits };
@@ -790,9 +961,7 @@
       return { rate: next };
     },
 
-    async getSettings() {
-      return deepClone(state.settings || {});
-    },
+    async getSettings() { return deepClone(state.settings || {}); },
 
     async updateSettings(patch = {}) {
       state.settings = { ...(state.settings || {}), ...patch };
@@ -803,38 +972,71 @@
     // --- BOOKINGS & LESSON NOTES ---
     async createBooking(data) {
       refillSubscriptionCreditsIfNeeded();
-      const student = getStudentByEmail(data.clientEmail);
-      if (!student) throw new Error("Student account not found.");
+      const sb = await requireSupabase();
+
+      const clientEmail = String(data.clientEmail || '').trim().toLowerCase();
+      const { data: studentRow, error: studentError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .select('*')
+        .eq('email', clientEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (studentError) throw new Error(getErrorMessage(studentError, 'Unable to load student account.'));
+      if (!studentRow) throw new Error("Student account not found.");
+
+      const student = normalizeStudent(studentRow);
       const isForced = data.force === true;
       if (!isForced && student.credits < 1) throw new Error("Insufficient credits. Please purchase a package.");
-      
+
       const service = getServiceById(data.serviceId);
+      if (!service) throw new Error('Service not found.');
+
       const booking = normalizeBooking({ ...data, serviceName: service.name, price: service.price });
-      
-      state.bookings.push(booking);
+
+      const { data: insertedRows, error: bookingError } = await sb
+        .from(SUPABASE_BOOKINGS_TABLE)
+        .insert([booking])
+        .select();
+
+      if (bookingError) throw new Error(getErrorMessage(bookingError, 'Unable to create booking.'));
+      const inserted = normalizeBooking((insertedRows && insertedRows[0]) || booking);
+
+      state.bookings.push(inserted);
+
       if (student.credits > 0) {
-        await this.adjustCredits(student.email, -1);
+        await this.updateCredits(student.email, -1);
         await this.logTransaction(student.email, 'credit_out', 1, `Booking: ${service.name}`);
       }
+
       addSuggestion('emails', student.email);
-      addSuggestion('notes', booking.notes);
+      addSuggestion('notes', inserted.notes);
       saveState();
-      return booking;
+
+      return inserted;
     },
 
     async listBookings(filter = {}) {
-      let b = [...state.bookings];
-      if (filter.clientEmail) b = b.filter(x => x.clientEmail === filter.clientEmail.toLowerCase());
-      if (filter.date) b = b.filter(x => x.date === filter.date);
-      return deepClone(b);
+      const sb = await requireSupabase();
+      let query = sb.from(SUPABASE_BOOKINGS_TABLE).select('*');
+      if (filter.clientEmail) query = query.eq('clientEmail', String(filter.clientEmail).toLowerCase());
+      if (filter.date) query = query.eq('date', filter.date);
+
+      const { data, error } = await query;
+      if (error) throw new Error(getErrorMessage(error, 'Unable to list bookings.'));
+
+      const rows = (data || []).map(normalizeBooking);
+      if (!filter.clientEmail && !filter.date) {
+        state.bookings = rows;
+        saveState();
+      }
+      return deepClone(rows);
     },
 
     async sendReminder(bookingId) {
       const links = await this.generateReminderLinks(bookingId);
       if (!links) throw new Error('Booking not found.');
-      if (typeof window !== 'undefined' && window.open) {
-        window.open(links.email, '_blank');
-      }
+      if (typeof window !== 'undefined' && window.open) window.open(links.email, '_blank');
       return links;
     },
 
@@ -845,7 +1047,6 @@
     async updateBookingNotes(bookingId, teacherNotes, homework) {
       const b = state.bookings.find(x => x.id === bookingId);
       if (!b) throw new Error("Booking not found");
-      
       b.teacherNotes = teacherNotes;
       b.homework = homework;
       b.status = 'completed';
@@ -864,11 +1065,11 @@
     async calculateCancellationTerms(bookingId) {
       const b = state.bookings.find(x => x.id === bookingId);
       if (!b) throw new Error("Booking not found");
-      
+
       const now = new Date();
       const lessonTime = new Date(`${b.date}T${b.time}`);
       const hoursDiff = (lessonTime - now) / (1000 * 60 * 60);
-      
+
       if (hoursDiff < state.settings.cancelWindow) {
         return { fee: 1, message: `Less than ${state.settings.cancelWindow}h notice. No credit refund.` };
       }
@@ -903,7 +1104,7 @@
       saveState();
       return deepClone(student);
     },
-    
+
     async setStudentSubscription(email, isSubscription) {
       const student = getStudentByEmail(email);
       if (!student) throw new Error('Student not found.');
@@ -921,14 +1122,43 @@
       const refilled = refillSubscriptionCreditsIfNeeded();
       return { refilled, month: monthKey() };
     },
-    
-    async adjustCredits(email, amount) {
+
+    async updateCredits(email, amount) {
       refillSubscriptionCreditsIfNeeded();
-      const student = getStudentByEmail(email);
-      if (student) {
-        student.credits = Math.max(0, student.credits + amount);
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      const delta = Number(amount || 0);
+      if (!normalizedEmail) throw new Error('Student email required.');
+      if (!Number.isFinite(delta)) throw new Error('Credits amount must be a number.');
+
+      const sb = await requireSupabase();
+      const { data: row, error: readError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .select('credits')
+        .eq('email', normalizedEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (readError) throw new Error(getErrorMessage(readError, 'Unable to load student credits.'));
+      if (!row) throw new Error('Student not found.');
+
+      const nextCredits = Math.max(0, Number(row.credits || 0) + delta);
+      const { error: writeError } = await sb
+        .from(SUPABASE_STUDENTS_TABLE)
+        .update({ credits: nextCredits })
+        .eq('email', normalizedEmail);
+
+      if (writeError) throw new Error(getErrorMessage(writeError, 'Unable to update credits.'));
+
+      const localStudent = getStudentByEmail(normalizedEmail);
+      if (localStudent) {
+        localStudent.credits = nextCredits;
         saveState();
       }
+      return { email: normalizedEmail, credits: nextCredits };
+    },
+
+    async adjustCredits(email, amount) {
+      return this.updateCredits(email, amount);
     },
 
     async getPendingReminders() {
@@ -973,9 +1203,7 @@
     async getEmailTemplate(type, data) {
       if (type === 'PURCHASE_RECEIPT') {
         const body = `Hi ${data.clientName},\n\nThank you for your purchase!\nPackage: ${data.packageName}\nCredits Added: ${data.credits}\nAmount: $${data.amount}\n\nBook your sessions in the portal.\n\nBest,\nStudioFlow Team`;
-        return {
-          mailto: `mailto:${data.clientEmail}?subject=Receipt&body=${encodeURIComponent(body)}`
-        };
+        return { mailto: `mailto:${data.clientEmail}?subject=Receipt&body=${encodeURIComponent(body)}` };
       }
     },
 
@@ -1034,6 +1262,7 @@
       if (toStudent.email === fromEmail) throw new Error('You cannot message yourself.');
       const text = String(body || '').trim();
       if (!text) throw new Error('Message cannot be empty.');
+
       const msg = normalizeMessage({
         fromEmail,
         toEmail: toStudent.email,
@@ -1051,6 +1280,7 @@
       if (!currentEmail) throw new Error('No active student session.');
       const peer = resolveStudentByIdentifier(peerIdentifier);
       if (!peer) throw new Error('Recipient not found.');
+
       const rows = state.privateMessages
         .filter((m) => {
           const mineToPeer = m.fromEmail === currentEmail && m.toEmail === peer.email;
@@ -1058,12 +1288,14 @@
           return mineToPeer || peerToMine;
         })
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
       return deepClone(rows);
     },
 
     async listStudentMessageThreads() {
       const currentEmail = String(localStorage.getItem(STUDENT_SESSION_KEY) || '').toLowerCase();
       if (!currentEmail) throw new Error('No active student session.');
+
       const mine = state.privateMessages.filter((m) => m.fromEmail === currentEmail || m.toEmail === currentEmail);
       const grouped = {};
       mine.forEach((msg) => {
@@ -1071,6 +1303,7 @@
         if (!grouped[peerEmail]) grouped[peerEmail] = [];
         grouped[peerEmail].push(msg);
       });
+
       const rows = Object.keys(grouped).map((peerEmail) => {
         const peer = getStudentByEmail(peerEmail);
         const messages = grouped[peerEmail].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -1085,6 +1318,7 @@
           unreadCount: unread
         };
       }).sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt));
+
       return deepClone(rows);
     },
 
@@ -1093,6 +1327,7 @@
       if (!currentEmail) throw new Error('No active student session.');
       const peer = resolveStudentByIdentifier(peerIdentifier);
       if (!peer) throw new Error('Recipient not found.');
+
       let changed = false;
       state.privateMessages.forEach((m) => {
         const isUnreadIncoming = m.fromEmail === peer.email && m.toEmail === currentEmail && !m.readBy.includes(currentEmail);
@@ -1109,12 +1344,14 @@
       const normalizedEmail = String(email || '').trim().toLowerCase();
       const exists = getStudentByEmail(normalizedEmail);
       if (!exists) throw new Error('Student not found.');
+
       state.students = state.students.filter((s) => s.email !== normalizedEmail);
       state.bookings = state.bookings.filter((b) => b.clientEmail !== normalizedEmail);
       state.lessonRecaps = state.lessonRecaps.filter((r) => r.studentEmail !== normalizedEmail);
       state.ledger = state.ledger.filter((tx) => tx.clientEmail !== normalizedEmail);
       state.privateMessages = state.privateMessages.filter((m) => m.fromEmail !== normalizedEmail && m.toEmail !== normalizedEmail);
       saveState();
+
       if (localStorage.getItem(STUDENT_SESSION_KEY) === normalizedEmail) {
         localStorage.removeItem(STUDENT_SESSION_KEY);
       }

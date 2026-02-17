@@ -24,11 +24,6 @@
     .btn-sub { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; }
     .btn-sub:hover { background: #f1f5f9; }
     .hidden { display: none; }
-    @media (max-width: 768px) {
-      body { padding: 12px; }
-      main { min-height: 75vh; display: flex; align-items: stretch; }
-      .card { min-height: 75vh; width: 100%; display: flex; flex-direction: column; justify-content: center; }
-    }
   </style>
 </head>
 <body class="p-4 md:p-8 flex items-center justify-center">
@@ -48,14 +43,9 @@
       <div class="space-y-3">
         <div id="registerFields" class="hidden">
           <input id="name" class="field" placeholder="Full Name (for your studio)">
-          <input id="username" class="field mt-3" placeholder="Username (optional)">
         </div>
-        <input id="email" class="field" placeholder="Username or email" type="text">
+        <input id="email" class="field" placeholder="Email address" type="email">
         <input id="password" class="field" placeholder="Password" type="password">
-        <label class="flex items-center gap-2 text-xs text-slate-500 font-bold">
-          <input id="showPassword" type="checkbox" class="h-4 w-4">
-          Show password text
-        </label>
       </div>
 
       <div class="space-y-3">
@@ -86,10 +76,6 @@
           <div class="space-y-2">
             <input id="resetCode" class="field text-sm" placeholder="Verification Code">
             <input id="newPassword" class="field text-sm" placeholder="New Password" type="password">
-            <label class="flex items-center gap-2 text-xs text-slate-500 font-bold">
-              <input id="showNewPassword" type="checkbox" class="h-4 w-4">
-              Show new password text
-            </label>
             <button id="btnApplyCodeReset" class="btn btn-main text-sm">Apply New Password</button>
           </div>
         </div>
@@ -97,30 +83,20 @@
 
       <p id="feedback" class="text-sm font-bold text-center min-h-[20px]"></p>
     </section>
-  </main><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </main>
+
+  <script src="app-api.js"></script>
   <script src="pwa-init.js"></script>
   
   <script>
     let role = 'student';
     let isRegisterMode = false;
-    const params = new URLSearchParams(location.search);
-    const nextTarget = params.get('next');
 
     const q = (id) => document.getElementById(id);
 
     function setFeedback(msg, isOk) {
       q('feedback').textContent = msg;
       q('feedback').className = `text-sm font-bold text-center ${isOk ? 'text-emerald-600' : 'text-rose-600'}`;
-    }
-
-    function go(url) {
-      window.location.assign(url);
-      setTimeout(() => { window.location.href = url; }, 350);
     }
 
     function updateUI() {
@@ -130,7 +106,6 @@
 
       // Visibility Rules
       q('btnCreateStudent').classList.toggle('hidden', role !== 'student');
-      q('btnCreateStudent').href = `register.html${nextTarget ? `?next=${encodeURIComponent(nextTarget)}` : ''}`;
       
       if (role === 'teacher') {
         q('btnSwitchToRegister').classList.toggle('hidden', isRegisterMode);
@@ -150,68 +125,53 @@
     // --- Core Logic Functions ---
 
     async function handleMainAction() {
-      const identifier = q('email').value.trim();
+      const email = q('email').value.trim().toLowerCase();
       const password = q('password').value;
       const name = q('name').value.trim();
-      const username = q('username').value.trim();
 
-      if (!identifier || !password) return setFeedback('Username/email and password required.', false);
+      if (!email || !password) return setFeedback('Email and password required.', false);
 
       try {
         if (isRegisterMode && role === 'teacher') {
           if (!name) return setFeedback('Please enter your full name.', false);
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.toLowerCase())) {
-            return setFeedback('Teacher registration requires a valid email.', false);
-          }
-          const created = await StudioFlowAPI.registerTeacher({ name, username, email: identifier, password });
-          if (created && created.cloud && created.cloud.pendingConfirmation) {
-            setFeedback('Check your email to confirm your teacher account, then sign in.', true);
-            const dest = `auth.html?role=teacher&email=${encodeURIComponent(identifier)}&verify=1${nextTarget ? `&next=${encodeURIComponent(nextTarget)}` : ''}`;
-            setTimeout(() => go(dest), 900);
-            return;
-          }
+          await StudioFlowAPI.registerTeacher({ name, email, password });
           setFeedback('Account created! Signing in...', true);
         }
 
-        if (role === 'teacher') await StudioFlowAPI.loginTeacher(identifier, password);
-        else await StudioFlowAPI.loginStudent(identifier, password);
+        if (role === 'teacher') await StudioFlowAPI.loginTeacher(email, password);
+        else await StudioFlowAPI.loginStudent(email, password);
         
-        if (role === 'teacher') {
-          go(nextTarget || 'admin.html');
-        } else {
-          go(nextTarget || 'portal.html');
-        }
+        location.href = role === 'teacher' ? 'admin.html' : 'book.html';
       } catch (e) {
         setFeedback(e.message, false);
       }
     }
 
     async function handlePasskey() {
-      const identifier = q('email').value.trim();
-      if (!identifier) return setFeedback('Enter username or email for biometric login.', false);
+      const email = q('email').value.trim().toLowerCase();
+      if (!email) return setFeedback('Enter email for biometric login.', false);
       try {
-        await StudioFlowAPI.loginWithPasskey(role, identifier);
-        if (role === 'teacher') go(nextTarget || 'admin.html');
-        else go(nextTarget || 'portal.html');
+        await StudioFlowAPI.loginWithPasskey(role, email);
+        location.href = role === 'teacher' ? 'admin.html' : 'book.html';
       } catch (e) { setFeedback(e.message, false); }
     }
 
     async function handleRequestCode() {
-      const identifier = q('email').value.trim();
-      if (!identifier) return setFeedback('Enter username or email to receive code.', false);
+      const email = q('email').value.trim().toLowerCase();
+      if (!email) return setFeedback('Enter email to receive code.', false);
       try {
-        const res = await StudioFlowAPI.requestPasswordReset(role, identifier, 'email');
+        const res = await StudioFlowAPI.requestPasswordReset(role, email, 'email');
         setFeedback(`Reset code sent! (Demo Code: ${res.demoCode})`, true);
       } catch (e) { setFeedback(e.message, false); }
     }
 
     async function handleApplyReset() {
-      const identifier = q('email').value.trim();
+      const email = q('email').value.trim().toLowerCase();
       const code = q('resetCode').value.trim();
       const newPass = q('newPassword').value;
       if (!code || !newPass) return setFeedback('Enter code and new password.', false);
       try {
-        await StudioFlowAPI.resetPasswordWithCode(role, identifier, code, newPass);
+        await StudioFlowAPI.resetPasswordWithCode(role, email, code, newPass);
         setFeedback('Password updated! Please sign in.', true);
         isRegisterMode = false;
         updateUI();
@@ -219,11 +179,11 @@
     }
 
     async function handleEnrollPasskey() {
-      const identifier = q('email').value.trim();
+      const email = q('email').value.trim().toLowerCase();
       const password = q('password').value;
-      if (!identifier || !password) return setFeedback('Enter credentials to link biometrics.', false);
+      if (!email || !password) return setFeedback('Enter credentials to link biometrics.', false);
       try {
-        await StudioFlowAPI.registerPasskey(role, identifier, password);
+        await StudioFlowAPI.registerPasskey(role, email, password);
         setFeedback('Biometrics linked successfully!', true);
       } catch (e) { setFeedback(e.message, false); }
     }
@@ -240,22 +200,14 @@
     q('btnRequestCode').addEventListener('click', handleRequestCode);
     q('btnApplyCodeReset').addEventListener('click', handleApplyReset);
     q('btnEnrollPasskey').addEventListener('click', handleEnrollPasskey);
-    q('showPassword').addEventListener('change', (e) => {
-      q('password').type = e.target.checked ? 'text' : 'password';
-    });
-    q('showNewPassword').addEventListener('change', (e) => {
-      q('newPassword').type = e.target.checked ? 'text' : 'password';
-    });
 
     // Initial load check for role in URL
+    const params = new URLSearchParams(location.search);
     if (params.get('role') === 'teacher') role = 'teacher';
-    if (params.get('email')) q('email').value = params.get('email');
-    if (params.get('created') === '1') setFeedback('Account created. Please sign in.', true);
-    if (params.get('verify') === '1') setFeedback('Verify your email from inbox, then sign in.', true);
     updateUI();
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

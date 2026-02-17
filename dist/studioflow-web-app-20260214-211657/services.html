@@ -47,14 +47,13 @@
         <p class="text-slate-500 font-medium ml-12">Set your rates and teaching windows.</p>
       </div>
       <div class="flex gap-2">
-        <button id="toggleServicesPanelBtn" onclick="toggleServicesPanel()" class="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Hide Side Panel</button>
         <button onclick="window.print()" class="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Print Schedule</button>
       </div>
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      <aside id="servicesAside" class="lg:col-span-4 space-y-6">
+      <aside class="lg:col-span-4 space-y-6">
         <div class="card p-8 border-t-8 border-teal-600">
           <h2 class="text-xs font-black uppercase text-teal-700 dark:text-teal-400 tracking-widest mb-6">Create New Service</h2>
           
@@ -125,19 +124,16 @@
         </div>
       </aside>
 
-      <main id="servicesMain" class="lg:col-span-8 space-y-4">
+      <main class="lg:col-span-8 space-y-4">
         <h2 class="text-xs font-black uppercase text-slate-400 tracking-widest px-2">Active Studio Offerings</h2>
         <div id="serviceList" class="grid gap-4">
             </div>
       </main>
 
     </div>
-  </div><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </div>
+
+  <script src="app-api.js"></script>
   <script>
     async function init() {
       // Dark Mode Persistence
@@ -248,32 +244,10 @@
       }
     }
 
-    function applyServicesPanelState(collapsed) {
-      const aside = document.getElementById('servicesAside');
-      const main = document.getElementById('servicesMain');
-      const btn = document.getElementById('toggleServicesPanelBtn');
-      if (!aside || !main || !btn) return;
-      aside.classList.toggle('hidden', collapsed);
-      main.classList.toggle('lg:col-span-12', collapsed);
-      if (!collapsed) {
-        main.classList.add('lg:col-span-8');
-      } else {
-        main.classList.remove('lg:col-span-8');
-      }
-      btn.textContent = collapsed ? 'Show Side Panel' : 'Hide Side Panel';
-      localStorage.setItem('studioflow_services_panel_collapsed', collapsed ? '1' : '0');
-    }
-
-    function toggleServicesPanel() {
-      const current = localStorage.getItem('studioflow_services_panel_collapsed') === '1';
-      applyServicesPanelState(!current);
-    }
-
-    applyServicesPanelState(localStorage.getItem('studioflow_services_panel_collapsed') === '1');
     init();
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

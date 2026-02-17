@@ -32,9 +32,12 @@
     <footer class="mt-20 text-center border-t border-slate-200 dark:border-slate-800 pt-8">
         <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">Secure Payment Processing via StudioFlow</p>
     </footer>
-  </div>
-
-  <script src="app-api.js"></script>
+  </div><script>
+  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
+  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-api.js"></script>
   <script>
     async function initShop() {
         // Sync Theme

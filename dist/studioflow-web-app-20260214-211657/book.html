@@ -63,16 +63,12 @@
       <section class="space-y-4 pt-6 border-t border-slate-100">
         <div class="grid md:grid-cols-2 gap-4">
           <div>
-            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Username or Email</label>
-            <input id="clientEmail" type="text" class="field mt-1" placeholder="you@email.com or username">
+            <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Your Email</label>
+            <input id="clientEmail" type="email" class="field mt-1" placeholder="you@email.com">
           </div>
           <div id="passwordWrapper">
             <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Password</label>
             <input id="clientPassword" type="password" class="field mt-1" placeholder="Enter password to book">
-            <label class="flex items-center gap-2 text-xs text-slate-500 font-bold mt-2">
-              <input id="showBookPassword" type="checkbox" class="h-4 w-4">
-              Show password text
-            </label>
           </div>
         </div>
         <div>
@@ -92,12 +88,9 @@
         First time here? <a href="register.html" class="text-teal-700 font-bold underline">Create a student account</a>
       </p>
     </main>
-  </div><script>
-  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
-  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app-api.js"></script>
+  </div>
+
+  <script src="app-api.js"></script>
   <script>
     let services = [];
     let selectedSlot = null;
@@ -124,11 +117,10 @@
 
       // 3. Load Services
       try {
-      services = await StudioFlowAPI.listServices();
-      q('serviceSelect').innerHTML = services.length
-        ? services.map(s => `<option value="${s.id}">${s.name}</option>`).join('')
-        : '<option value="">No services available yet</option>';
-      q('submitBtn').disabled = services.length === 0;
+        services = await StudioFlowAPI.listServices();
+        q('serviceSelect').innerHTML = services.map(s => 
+          `<option value="${s.id}">${s.name}</option>`
+        ).join('');
         
         await renderSlots();
       } catch (e) {
@@ -143,11 +135,7 @@
       const date = q('dateSelect').value;
       
       const service = services.find(s => s.id === serviceId);
-      if (!service) {
-        q('serviceMeta').textContent = 'No active services';
-        q('slotGrid').innerHTML = '<p class="col-span-full text-center py-4 text-slate-400 text-xs font-bold uppercase tracking-widest">Teacher has not published services yet.</p>';
-        return;
-      }
+      if (!service) return;
 
       q('serviceMeta').textContent = `${service.duration}m · $${service.price}`;
       grid.innerHTML = '<p class="col-span-full text-center py-4 text-slate-400 animate-pulse">Checking schedule...</p>';
@@ -194,7 +182,7 @@
     };
 
     async function submitBooking() {
-      const identifier = q('clientEmail').value.trim();
+      const email = q('clientEmail').value.trim().toLowerCase();
       const password = q('clientPassword').value;
       const serviceId = q('serviceSelect').value;
       const date = q('dateSelect').value;
@@ -208,8 +196,8 @@
       try {
         // Handle login if they aren't logged in already
         if (!currentUser) {
-          if (!identifier || !password) throw new Error("Username/email and password required.");
-          currentUser = await StudioFlowAPI.loginStudent(identifier, password);
+          if (!email || !password) throw new Error("Email and password required.");
+          currentUser = await StudioFlowAPI.loginStudent(email, password);
         }
 
         const service = services.find(s => s.id === serviceId);
@@ -242,14 +230,11 @@
     q('serviceSelect').addEventListener('change', renderSlots);
     q('dateSelect').addEventListener('change', renderSlots);
     q('submitBtn').addEventListener('click', submitBooking);
-    q('showBookPassword').addEventListener('change', (e) => {
-      q('clientPassword').type = e.target.checked ? 'text' : 'password';
-    });
 
     initPage();
   </script>
 
-  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 12px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;box-sizing:border-box;width:100%;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;">
+  <footer class="sf-project-credit" style="margin-top:24px;padding:14px 10px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
     <span>Created and maintained by <strong>Moise T. Sahouo</strong>.</span>
   </footer>
 </body>

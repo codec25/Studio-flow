@@ -60,9 +60,12 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <script src="app-api.js"></script>
+  </div><script>
+  window.STUDIOFLOW_SUPABASE_URL = "PASTE_MY_SUPABASE_URL";
+  window.STUDIOFLOW_SUPABASE_ANON_KEY = "PASTE_MY_ANON_KEY";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app-api.js"></script>
   <script>
     async function sendSupportEmail() {
         const user = await StudioFlowAPI.getCurrentStudent();
